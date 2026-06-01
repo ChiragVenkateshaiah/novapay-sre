@@ -1,0 +1,13 @@
+Jun 01 04:00:40 ip-172-31-10-237 systemd[1]: /etc/systemd/system/novapay.service:13: Invalid syntax, ignoring: "PATH"=/opt/novapay/venv/bin"
+Jun 01 04:00:55 ip-172-31-10-237 systemd[1]: Started novapay.service - Novapay Payment API.
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]:  * Serving Flask app 'app'
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]:  * Debug mode: off
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]: WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]:  * Running on all addresses (0.0.0.0)
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]:  * Running on http://127.0.0.1:5000
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]:  * Running on http://172.31.10.237:5000
+Jun 01 04:00:55 ip-172-31-10-237 python[1388]: Press CTRL+C to quit
+Jun 01 04:05:05 ip-172-31-10-237 python[1388]: 127.0.0.1 - - [01/Jun/2026 04:05:05] "GET /health HTTP/1.1" 200 -
+Jun 01 04:16:18 ip-172-31-10-237 python[1388]: 127.0.0.1 - - [01/Jun/2026 04:16:18] "GET /health HTTP/1.1" 200 -
+Jun 01 04:17:15 ip-172-31-10-237 python[1388]: 127.0.0.1 - - [01/Jun/2026 04:17:15] "POST /pay HTTP/1.1" 200 -
+Jun 01 04:34:58 ip-172-31-10-237 python[1388]: 127.0.0.1 - - [01/Jun/2026 04:34:58] "GET /health HTTP/1.1" 200 -
