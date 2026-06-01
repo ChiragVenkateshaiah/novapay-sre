@@ -21,5 +21,5 @@ Every incident is documented here and published on LinkedIn.
 ## Incident Log
 | ID | Title | Severity | Status |
 |---|---|---|---|
-| INC-001 | Coming soon... | - | - |
+| INC-001 | SSH Disconnection During Payment Service Verification | P3 - Low | Resolved |
 
