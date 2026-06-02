@@ -1,0 +1,207 @@
+Script started on 2026-06-02 05:42:58+00:00 [TERM="tmux-256color" TTY="/dev/pts/5" COLUMNS="72" LINES="23"]
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ echo "==== BASELINE - $(date -u) ===="
+[?2004l==== BASELINE - Tue Jun  2 05:43:28 UTC 2026 ====
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ df -h
+[?2004lFilesystem       Size  Used Avail Use% Mounted on
+/dev/root        6.8G  3.4G  3.4G  50% /
+tmpfs            456M     0  456M   0% /dev/shm
+tmpfs            183M  888K  182M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+efivarfs         128K  3.3K  120K   3% /sys/firmware/efi/efivars
+/dev/nvme0n1p16  881M  162M  657M  20% /boot
+/dev/nvme0n1p15  105M  6.2M   99M   6% /boot/efi
+tmpfs             92M   32K   92M   1% /run/user/1000
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ free -m
+[?2004l               total        used        free      shared  buff/cache   available
+Mem:             911         445         110           2         558         465
+Swap:              0           0           0
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ sudo systemctl status novapay
+[?2004l[?1h=[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; pres[m[7m>[27m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55m[m[7m>[27m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/202[m[7m>[27m
+[7mlines 1-20/20 (END)[27m[K[H[J[H[H[J[H[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; prese[m[7m>[27m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55mi[m[7m>[27m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026[m[7m>[27m
+[1m~[0m
+[1m~[0m
+[7mlines 1-20/20 (END)[27m[K[H[J[H[H[J[H[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menab[m[7m>[27m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55min ago[m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:[m[7m>[27m
+[1m~[0m
+[1m~[0m
+[7mlines 1-20/20 (END)[27m[K[H[J[H[H[J[H[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)[m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55min ago[m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:34] "GET [m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:36] "GET [m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:38] "GET [m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:40] "GET [m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:42] "GET [m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:44] "GET [m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:46] "GET [m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:48] "GET [m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:50] "GET [m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:52] "GET [m[7m>[27m
+[1m~[0m
+[1m~[0m
+[7mlines 1-20/20 (END)[27m[K[H[J[H[H[J[H[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)[m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55min ago[m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:34] "GET /healt[m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:36] "GET /healt[m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:38] "GET /healt[m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:40] "GET /healt[m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:42] "GET /healt[m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:44] "GET /healt[m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:46] "GET /healt[m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:48] "GET /healt[m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:50] "GET /healt[m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:52] "GET /healt[m[7m>[27m
+[1m~[0m
+[1m~[0m
+[7mlines 1-20/20 (END)[27m[K[H[J[H[H[J[H[0;1;32m●[0m novapay.service - Novapay Payment API[m
+     Loaded: loaded (]8;;file://ip-172-31-10-237/etc/systemd/system/novapay.service/etc/systemd/system/novapay.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)[m
+     Active: [0;1;32mactive (running)[0m since Tue 2026-06-02 03:48:02 UTC; 1h 55min ago[m
+   Main PID: 522 (python)[m
+      Tasks: 1 (limit: 1013)[m
+     Memory: 21.7M (peak: 23.3M)[m
+        CPU: 1.362s[m
+     CGroup: /system.slice/novapay.service[m
+             └─[0;38;5;245m522 /opt/novapay/venv/bin/python app.py[0m[m
+[m
+Jun 02 05:43:34 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:34] "GET /health[m[7m>[27m
+Jun 02 05:43:36 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:36] "GET /health[m[7m>[27m
+Jun 02 05:43:38 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:38] "GET /health[m[7m>[27m
+Jun 02 05:43:40 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:40] "GET /health[m[7m>[27m
+Jun 02 05:43:42 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:42] "GET /health[m[7m>[27m
+Jun 02 05:43:44 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:44] "GET /health[m[7m>[27m
+Jun 02 05:43:46 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:46] "GET /health[m[7m>[27m
+Jun 02 05:43:48 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:48] "GET /health[m[7m>[27m
+Jun 02 05:43:50 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:50] "GET /health[m[7m>[27m
+Jun 02 05:43:52 ip-172-31-10-237 python[522]: 127.0.0.1 - - [02/Jun/2026 05:43:52] "GET /health[m[7m>[27m
+[1m~[0m
+[1m~[0m
+[7mlines 1-20/20 (END)[27m[K[K[?1l>
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ curl httpi[K://localhost:5000/health
+[?2004l{"service":"novapay-payment-api","status":"healthy"}
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ echo "==== INCIDENT START - $(date -u) ===="
+[?2004l==== INCIDENT START - Tue Jun  2 05:44:52 UTC 2026 ====
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ dd if [K=.[K/.de[K[K[Kdev/zero of [K=/tmp/bigfile bs=1M count=2048
+[?2004l2048+0 records in
+2048+0 records out
+2147483648 bytes (2.1 GB, 2.0 GiB) copied, 14.993 s, 143 MB/s
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ echo "==== MID-INCDIENT[K[K[K[K[KIDENT = [K[K- $(date -u) ===="
+[?2004l==== MID-INCIDENT - Tue Jun  2 05:46:07 UTC 2026 ====
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ df -h
+[?2004lFilesystem       Size  Used Avail Use% Mounted on
+/dev/root        6.8G  5.4G  1.4G  80% /
+tmpfs            456M     0  456M   0% /dev/shm
+tmpfs            183M  892K  182M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+efivarfs         128K  3.3K  120K   3% /sys/firmware/efi/efivars
+/dev/nvme0n1p16  881M  162M  657M  20% /boot
+/dev/nvme0n1p15  105M  6.2M   99M   6% /boot/efi
+tmpfs             92M   32K   92M   1% /run/user/1000
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ free -m
+[?2004l               total        used        free      shared  buff/cache   available
+Mem:             911         424         127           2         562         486
+Swap:              0           0           0
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ curl [K[K[K[K[Ksudo du -sh /* 2>/ded[Kv/nm[Kull | sort -h[Krh | head -10
+[?2004l2.6G	/usr
+2.1G	/tmp
+684M	/var
+510M	/snap
+169M	/boot
+61M	/opt
+54M	/home
+6.6M	/etc
+924K	/run
+72K	/root
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ curl http://localhost:5000/health
+[?2004l{"service":"novapay-payment-api","status":"healthy"}
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ echo "==== RESOLUTION - $(date -u) +++[K[K[K======"
+[?2004l==== RESOLUTION - Tue Jun  2 05:48:00 UTC 2026 ======
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ rm /tmp/bigfile
+[?2004l[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ df -h
+[?2004lFilesystem       Size  Used Avail Use% Mounted on
+/dev/root        6.8G  3.4G  3.4G  50% /
+tmpfs            456M     0  456M   0% /dev/shm
+tmpfs            183M  892K  182M   1% /run
+tmpfs            5.0M     0  5.0M   0% /run/lock
+efivarfs         128K  3.3K  120K   3% /sys/firmware/efi/efivars
+/dev/nvme0n1p16  881M  162M  657M  20% /boot
+/dev/nvme0n1p15  105M  6.2M   99M   6% /boot/efi
+tmpfs             92M   32K   92M   1% /run/user/1000
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ curl http://localhost:5000/health
+[?2004l{"service":"novapay-payment-api","status":"healthy"}
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ echo "=====  [KINCIDENT CLOSED - $(date -u) ===="
+[?2004l===== INCIDENT CLOSED - Tue Jun  2 05:48:47 UTC 2026 ====
+[?2004h[01;32mubuntu@ip-172-31-10-237[00m:[01;34m~[00m$ exit
+[?2004lexit
+
+Script done on 2026-06-02 05:48:51+00:00 [COMMAND_EXIT_CODE="0"]
