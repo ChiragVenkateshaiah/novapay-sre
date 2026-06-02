@@ -22,4 +22,4 @@ Every incident is documented here and published on LinkedIn.
 | ID | Title | Severity | Status |
 |---|---|---|---|
 | INC-001 | SSH Disconnection During Payment Service Verification | P3 - Low | Resolved |
-
+| INC-002 | Disk Exhaustion on NovaPay Payment Server | P1 - Critical | Resolved |
