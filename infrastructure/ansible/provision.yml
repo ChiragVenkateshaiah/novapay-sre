@@ -1,0 +1,94 @@
+
+
+---
+- name: Provision NovaPay EC2 box
+  hosts: novapay
+  become: true
+
+
+  vars:
+    go_version: "1.24.3"
+    go_tarball: "go{{ go_version }}.linux-amd64.tar.gz"
+    go_url: "https://go.dev/dl/{{ go_tarball }}"
+    app_user: ubuntu
+
+  tasks:
+
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+
+    - name: Install system packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - tmux
+          - btop
+          - postgresql
+          - postgresql-contrib
+          - acl
+        state: present
+
+
+    - name: Start and enable PostgreSQL
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
+
+
+    - name: Download Go tarball
+      get_url:
+        url: "{{ go_url }}"
+        dest: "/tmp/{{ go_tarball }}"
+
+
+    - name: Remove old Go installation
+      file:
+        path: /usr/local/go
+        state: absent
+
+
+    - name: Extract Go
+      unarchive:
+        src: "/tmp/{{ go_tarball }}"
+        dest: /usr/local
+        remote_src: yes
+
+
+
+    - name: Add Go to PATH system-wide
+      lineinfile:
+        path: /etc/profile.d/go.sh
+        line: "{{ item }}"
+        create: yes
+        mode: '0644'
+      loop:
+        - 'export PATH=$PATH:/usr/local/go/bin'
+        - 'export GOPATH=/home/{{ app_user }}/go'
+        - 'export PATH=$PATH:/home/{{ app_user }}/go/bin'
+
+
+    - name: Create app directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+      loop:
+        - /opt/novapay
+        - /opt/novapay/bin
+        - /opt/novapay/config
+        - /var/log/novapay
+
+    - name: Set log dir ownership
+      file:
+        path: /var/log/novapay
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
