@@ -1,0 +1,14 @@
+
+
+
+
+
+# Go binaries
+app/fake-psp/fake-psp
+app/payment-api/payment-api
+
+# General
+*.env
+*.pem
+*.key
+/tmp
