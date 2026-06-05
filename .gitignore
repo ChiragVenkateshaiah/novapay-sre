@@ -12,3 +12,6 @@ app/payment-api/payment-api
 *.pem
 *.key
 /tmp
+
+# Private working notes (local only)
+notes/
