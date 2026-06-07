@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "bash .claude/hooks/pre-deploy-check.sh"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "command": "bash .claude/hooks/post-tool-log.sh"
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(go build *)",
+      "Bash(go run *)",
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(go mod *)",
+      "Bash(go get *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(psql *)",
+      "Bash(curl -s *localhost*)",
+      "Bash(ansible -i * novapay -m ping)",
+      "Bash(ansible-playbook * --check *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo rm *)",
+      "Bash(chmod 777 *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * -O- | bash)"
+    ]
+  }
+}
