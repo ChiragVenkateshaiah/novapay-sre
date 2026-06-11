@@ -3,13 +3,23 @@
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "command": "bash .claude/hooks/pre-deploy-check.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/novapay-sre/.claude/hooks/pre-deploy-check.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Bash",
-        "command": "bash .claude/hooks/post-tool-log.sh"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/novapay-sre/.claude/hooks/post-tool-log.sh"
+          }
+        ]
       }
     ]
   },
