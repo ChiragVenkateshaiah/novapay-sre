@@ -1,0 +1,16 @@
+[Unit]
+Description=NovaPay Fake PSP
+After=network.target
+
+[Service]
+User=ubuntu
+ExecStart=/opt/novapay/bin/fake-psp
+Restart=on-failure
+RestartSec=5s
+Environment=PORT=8081
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fake-psp
+
+[Install]
+WantedBy=multi-user.target

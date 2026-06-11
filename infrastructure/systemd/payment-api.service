@@ -1,0 +1,18 @@
+[Unit]
+Description=NovaPay Payment API
+After=network.target postgresql.service
+
+[Service]
+User=ubuntu
+ExecStart=/opt/novapay/bin/payment-api
+Restart=on-failure
+RestartSec=5s
+Environment=PORT=8080
+Environment=DATABASE_URL=postgresql://novapay:novapay@localhost:5432/novapay?sslmode=disable
+Environment=PSP_URL=http://localhost:8081
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=payment-api
+
+[Install]
+WantedBy=multi-user.target

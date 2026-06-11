@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-05 (v2 replanning — build-first foundation) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 1 (Day 1 complete; Day 2 next) · **Status:** in progress
+**Last updated:** 2026-06-11 (D3 complete; D4 next) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 1 (Day 1 ✓ Day 2 ✓ Day 3 ✓; Day 4 next) · **Status:** in progress
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -62,8 +62,9 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 ## Weekly log
 ### Week 1 — Phase 1: Build a correct payments core + harden it at the process boundary
 - **Goal:** build `payment-api` + `fake-psp` on one EC2 box (deployed via Ansible) under systemd, with a correct local double-entry ledger; **harden** the service 3 ways at the process boundary (bounded retries; timeouts + graceful shutdown; correct goroutine lifecycle).
-- **Day status:** D1 ☑ D2 ☐ D3 ☐ D4 ☐ D5 ☐ D6 ☐ D7 ☐
-- **Built (so far):** WSL2 build env (Go 1.24.3, gopls, Ansible, Neovim); EC2 provisioned via Ansible (Go + Postgres + app/log dirs); `payment-api` (`/healthz`) + `fake-psp` (`/authorize` + latency/hang knobs) scaffolded, compiling, smoke-tested; binaries git-ignored; committed + pushed.
+- **Day status:** D1 ☑ D2 ☑ D3 ☑ D4 ☐ D5 ☐ D6 ☐ D7 ☐
+- **Built (so far):** WSL2 build env (Go 1.24.3, gopls, Ansible, Neovim); EC2 provisioned via Ansible (Go + Postgres + app/log dirs); `payment-api` (`/healthz`) + `fake-psp` (`/authorize` + latency/hang knobs) scaffolded, compiling, smoke-tested; binaries git-ignored; committed + pushed. `POST /charge` with double-entry ledger (pgx/v5, single transaction, two balanced ledger entries); idempotency enforced via `UNIQUE(idempotency_key)` — repeated key returns original result at latency_ms=0, moves no money; structured `slog` JSON logging (request_id, idempotency_key, latency_ms, psp_status); invariant query confirmed 0 rows; committed + pushed. systemd unit files for `payment-api` and `fake-psp` (restart-on-failure, journald logging, start-on-boot); Ansible `deploy.yml` (builds binaries locally via `delegate_to: localhost`, copies to `/opt/novapay/bin/`, installs unit files, sets up EC2 Postgres user + database via shell module, applies schema, `daemon-reload`, `enable --now`); both services deployed and active on EC2 via single Ansible command; ledger invariant holds on EC2 database (0 rows); committed + pushed.
+- **EC2 baseline (D3):** `payment-api` 1.9MB RAM · `fake-psp` 1.1MB RAM · ports 8080/8081 · structured logs to journald (`SyslogIdentifier=payment-api/fake-psp`) · restart-on-failure with 5s backoff · enabled (survives reboot) · 0 payments, invariant clean.
 - **Hardening built:** _(Sonnet fills D4–D6: the resilience properties and how each was verified)_
 - **Published:** _(build/learning deep-dive — Day 7 — link/title)_
 - **Carryover / unfinished:** _(anything to roll into Week 2)_

@@ -1,0 +1,113 @@
+---
+- name: Deploy NovaPay to EC2
+  hosts: novapay
+  become: true
+
+  vars:
+    app_dir: /opt/novapay
+    bin_dir: /opt/novapay/bin
+    app_user: ubuntu
+
+  tasks:
+
+    # ── Build locally on WSL2 ─────────────────────────────────────────────────
+
+    - name: Build payment-api binary
+      command: go build -o payment-api ./...
+      args:
+        chdir: "{{ playbook_dir }}/../../app/payment-api"
+      environment:
+        PATH: "/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
+        HOME: "{{ lookup('env', 'HOME') }}"
+      delegate_to: localhost
+      become: false
+
+    - name: Build fake-psp binary
+      command: go build -o fake-psp ./...
+      args:
+        chdir: "{{ playbook_dir }}/../../app/fake-psp"
+      environment:
+        PATH: "/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
+        HOME: "{{ lookup('env', 'HOME') }}"
+      delegate_to: localhost
+      become: false
+
+    # ── Copy binaries to EC2 ──────────────────────────────────────────────────
+
+    - name: Copy payment-api binary
+      copy:
+        src: "{{ playbook_dir }}/../../app/payment-api/payment-api"
+        dest: "{{ bin_dir }}/payment-api"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Copy fake-psp binary
+      copy:
+        src: "{{ playbook_dir }}/../../app/fake-psp/fake-psp"
+        dest: "{{ bin_dir }}/fake-psp"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    # ── Copy schema ───────────────────────────────────────────────────────────
+
+    - name: Copy schema.sql
+      copy:
+        src: "{{ playbook_dir }}/../../app/payment-api/schema.sql"
+        dest: "{{ app_dir }}/schema.sql"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0644'
+
+    # ── Install systemd unit files ────────────────────────────────────────────
+
+    - name: Copy payment-api.service
+      copy:
+        src: "{{ playbook_dir }}/../systemd/payment-api.service"
+        dest: /etc/systemd/system/payment-api.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy fake-psp.service
+      copy:
+        src: "{{ playbook_dir }}/../systemd/fake-psp.service"
+        dest: /etc/systemd/system/fake-psp.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    # ── Postgres: user + database (idempotent, no community.postgresql) ───────
+
+    - name: Ensure novapay postgres user exists
+      shell: |
+        sudo -u postgres psql -c "CREATE USER novapay WITH PASSWORD 'novapay';" 2>/dev/null || true
+
+    - name: Ensure novapay database exists
+      shell: |
+        sudo -u postgres psql -c "CREATE DATABASE novapay OWNER novapay;" 2>/dev/null || true
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE novapay TO novapay;" 2>/dev/null || true
+
+    # ── Apply schema (IF NOT EXISTS + ON CONFLICT = idempotent) ──────────────
+
+    - name: Apply schema.sql
+      shell: psql postgresql://novapay:novapay@localhost:5432/novapay -f {{ app_dir }}/schema.sql
+
+    # ── Systemd: reload → enable → restart ───────────────────────────────────
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and restart payment-api
+      systemd:
+        name: payment-api
+        enabled: yes
+        state: restarted
+
+    - name: Enable and restart fake-psp
+      systemd:
+        name: fake-psp
+        enabled: yes
+        state: restarted
