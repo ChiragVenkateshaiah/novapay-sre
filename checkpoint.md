@@ -72,6 +72,27 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 
 ---
 
+## Agentic workflow evolution log
+_Updated each day. Tracks how the Claude Code workflow grows alongside NovaPay._
+
+### Week 1 foundation (Days 1–3)
+- CLAUDE.md: project intelligence file, read every session
+- Custom commands: `/check`, `/deploy-dry-run`, `/deploy`, `/ec2-status`, `/ec2-logs`, `/ec2-invariant`, `/day-start`, `/commit`, `/test-charge`, `/load-test`
+- PreToolUse hook: blocks `ansible-playbook` without `--check` (exit 2)
+- PostToolUse hook: logs every bash command to `~/.claude/novapay-activity.log`
+- MCP: Postgres (dev queries), GitHub (issue + PR workflow)
+- `settings.json`: absolute hook paths, permissions allow/deny list
+
+### Day 4 additions
+- GitHub MCP workflow: observe failure → create issue → fix → close issue
+- `/load-test` command: concurrent charge test under `PSP_ERROR_RATE`, invariant check
+- Incident catalog habit: every hardening day generates a GitHub Issue
+
+### Rule: each day adds at least one workflow improvement
+Before committing Day N, ask: what does the Claude Code workflow gain today that it did not have yesterday?
+
+---
+
 ## Handoff to next Opus planning session (Week 2)
 **Next week is Phase 1, Week 2 — Filesystems, disk, memory (build-first).**
 - **Build slice:** structured, rotated transaction logging + a sane disk layout (logs vs. data).

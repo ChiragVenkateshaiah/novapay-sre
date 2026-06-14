@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,6 +36,16 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	if ms := os.Getenv("PSP_LATENCY_MS"); ms != "" {
 		n, _ := strconv.Atoi(ms)
 		time.Sleep(time.Duration(n) * time.Millisecond)
+	}
+
+	// Failure knob: random transient errors (Day 4 meltdown demo)
+	if rate := os.Getenv("PSP_ERROR_RATE"); rate != "" {
+		if r, _ := strconv.ParseFloat(rate, 64); rand.Float64() < r {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "psp_transient_failure"})
+			return
+		}
 	}
 
 	// Failure knob: hang forever (Day 6 incident)

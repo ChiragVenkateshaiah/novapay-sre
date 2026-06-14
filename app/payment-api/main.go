@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -208,6 +209,8 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 }
 
 // callPSP sends an authorisation request to fake-psp.
+// Retries up to 3 attempts total on HTTP 5xx only, with full-jitter exponential backoff.
+// 4xx, network errors, and context cancellation are returned immediately without retry.
 // No timeout yet — context deadline added on Day 6.
 func callPSP(ctx context.Context, amountMinor int64, currency string) (status, ref string, err error) {
 	pspURL := os.Getenv("PSP_URL")
@@ -223,29 +226,67 @@ func callPSP(ctx context.Context, amountMinor int64, currency string) (status, r
 		return "", "", fmt.Errorf("marshal: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		pspURL+"/authorize", bytes.NewReader(body))
-	if err != nil {
-		return "", "", fmt.Errorf("build request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
+	const maxAttempts = 3
+	const baseDelayMS = int64(100)
+	const maxDelayMS = int64(1000)
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", "", fmt.Errorf("http: %w", err)
-	}
-	defer resp.Body.Close()
+	var lastErr error
+	var lastStatus int
 
-	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("psp returned %d", resp.StatusCode)
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 {
+			capMS := baseDelayMS << attempt // 100*2^attempt: 200ms, 400ms
+			if capMS > maxDelayMS {
+				capMS = maxDelayMS
+			}
+			delayMS := rand.Int63n(capMS + 1)
+			slog.Warn("psp retry",
+				"attempt", attempt+1,
+				"delay_ms", delayMS,
+				"psp_status", lastStatus,
+			)
+			select {
+			case <-ctx.Done():
+				return "", "", ctx.Err()
+			case <-time.After(time.Duration(delayMS) * time.Millisecond):
+			}
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+			pspURL+"/authorize", bytes.NewReader(body))
+		if err != nil {
+			return "", "", fmt.Errorf("build request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", "", fmt.Errorf("http: %w", err)
+		}
+
+		lastStatus = resp.StatusCode
+
+		if resp.StatusCode >= 500 {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("psp returned %d", resp.StatusCode)
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return "", "", fmt.Errorf("psp returned %d", resp.StatusCode)
+		}
+
+		var result struct {
+			PSPRef string `json:"psp_ref"`
+			Status string `json:"status"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
+			return "", "", fmt.Errorf("decode: %w", err)
+		}
+		resp.Body.Close()
+		return result.Status, result.PSPRef, nil
 	}
 
-	var result struct {
-		PSPRef string `json:"psp_ref"`
-		Status string `json:"status"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", "", fmt.Errorf("decode: %w", err)
-	}
-	return result.Status, result.PSPRef, nil
+	return "", "", fmt.Errorf("psp failed after %d attempts: %w", maxAttempts, lastErr)
 }
