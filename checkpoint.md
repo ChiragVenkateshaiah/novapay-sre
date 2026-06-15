@@ -102,3 +102,20 @@ Before committing Day N, ask: what does the Claude Code workflow gain today that
 - **Resolved this week:** Postgres location — **local on WSL2 for dev, local on EC2 for the deploy target; RDS deferred to Week 7.** Receipt generation — **in-process goroutine** (not a shelled-out child), decided on Day 5.
 - **Open questions to resolve as they arise:** _(Sonnet logs here.)_
 - **Reminder:** discipline still undecided — **Decision Checkpoint at Week 20.**
+
+---
+
+## End-of-day ritual
+Run these in order at the end of every day before stopping EC2:
+
+1. `/check`                — final local correctness gate
+2. `/commit "DN: ..."`     — commit with descriptive message
+3. Deploy manually         — ansible-playbook (after `/deploy-dry-run`)
+4. `/ec2-invariant`        — verify EC2 ledger is balanced
+5. `/write-note N`         — generate Day_NN.md in notes/
+6. Update checkpoint.md    — mark day complete, update Built section
+7. stop-vm                 — never leave EC2 running overnight
+
+`/write-note` reads checkpoint.md + the previous day's note + session
+context. Run it while the session is still fresh — it cannot reconstruct
+details from a cold start.
