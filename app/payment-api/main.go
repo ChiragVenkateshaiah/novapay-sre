@@ -10,6 +10,9 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +21,8 @@ import (
 )
 
 var db *pgxpool.Pool
+
+var receiptWorker = make(chan string, 50)
 
 func main() {
 	ctx := context.Background()
@@ -39,6 +44,21 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go receiptLoop(&wg)
+
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt)
+		<-sigCh
+		slog.Info("SIGTERM received — draining receipt worker")
+		close(receiptWorker)
+		wg.Wait()
+		slog.Info("receipt worker drained")
+		os.Exit(0)
+	}()
 
 	http.HandleFunc("/healthz", handleHealth)
 	http.HandleFunc("/charge", handleCharge)
@@ -206,6 +226,30 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 	)
 
 	writeJSON(w, chargeResponse{PaymentID: paymentID, Status: pspStatus})
+
+	select {
+	case receiptWorker <- paymentID:
+	default: // channel full — skip silently, charge path never blocks
+	}
+}
+
+// receiptLoop reads payment IDs from receiptWorker and appends a receipt line to
+// /tmp/novapay-receipts.txt. Exits when the channel is closed and drained.
+func receiptLoop(wg *sync.WaitGroup) {
+	defer wg.Done()
+	f, err := os.OpenFile("/tmp/novapay-receipts.txt",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error("receipt file open failed", "err", err)
+		for range receiptWorker {
+		} // drain so close() doesn't block caller
+		return
+	}
+	defer f.Close()
+	for id := range receiptWorker {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Fprintln(f, "receipt-"+id)
+	}
 }
 
 // callPSP sends an authorisation request to fake-psp.
