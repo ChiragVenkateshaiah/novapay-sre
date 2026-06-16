@@ -109,7 +109,7 @@ Debug on EC2         →  SSH + Neovim (on-box only)
 - **SQL:** plain positional params (`$1, $2`) in `VALUES(...)` — no subqueries inside VALUES
 - **Transactions:** always `defer tx.Rollback(ctx)` immediately after `db.Begin(ctx)`
 - **Context:** always pass `ctx` to every DB and HTTP call
-- **No timeouts yet on PSP calls** — that is Day 6 hardening
+- **PSP calls:** `context.WithTimeout(5s)` + `http.Client{Timeout:6s}` — see ADR-006
 
 ---
 
@@ -121,6 +121,22 @@ Debug on EC2         →  SSH + Neovim (on-box only)
 4. **Financial correctness over speed.** When in doubt, do less, verify more.
 5. **All DB writes for a charge go in one transaction.** Never split the payment row and ledger entries across separate transactions.
 6. **Idempotency is enforced at the DB level** (`UNIQUE` constraint on `idempotency_key`), not just in application code.
+
+---
+
+## Architectural constraints (docs/decisions/)
+These decisions are permanent unless an ADR explicitly supersedes them.
+Propose changes that violate these only after reading the relevant ADR
+and flagging the conflict explicitly.
+
+- Never replace double-entry ledger with single balance table → ADR-001
+- Always pgx/v5 with pgxpool, never database/sql + lib/pq → ADR-002
+- Idempotency enforced at DB level (UNIQUE constraint), not app-only → ADR-003
+- Retry backoff must use full jitter, never equal jitter → ADR-004
+- Side effects (receipts, notifications) always in-process goroutines,
+  never shell-out via exec.Command → ADR-005
+- PSP calls must have two timeout layers: context deadline + HTTP client → ADR-006
+- Discipline (SRE/DevOps/Platform) undecided until Week-20 checkpoint → ADR-007
 
 ---
 
