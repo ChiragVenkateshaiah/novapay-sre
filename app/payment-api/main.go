@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -23,6 +24,8 @@ import (
 var db *pgxpool.Pool
 
 var receiptWorker = make(chan string, 50)
+
+var pspClient = &http.Client{Timeout: 6 * time.Second}
 
 func main() {
 	ctx := context.Background()
@@ -83,7 +86,10 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, map[string]string{"status": "ok"})
+	writeJSON(w, map[string]any{
+		"status":     "ok",
+		"goroutines": runtime.NumGoroutine(),
+	})
 }
 
 type chargeRequest struct {
@@ -140,10 +146,13 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// call fake-psp (no timeout yet — added on Day 6)
 	pspStatus, pspRef, err := callPSP(ctx, req.AmountMinor, req.Currency)
 	if err != nil {
-		slog.Error("psp call failed", "err", err, "idempotency_key", req.IdempotencyKey)
+		if errors.Is(err, context.DeadlineExceeded) {
+			slog.Warn("psp timeout", "err", err, "idempotency_key", req.IdempotencyKey)
+		} else {
+			slog.Error("psp call failed", "err", err, "idempotency_key", req.IdempotencyKey)
+		}
 		http.Error(w, "psp unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -255,8 +264,11 @@ func receiptLoop(wg *sync.WaitGroup) {
 // callPSP sends an authorisation request to fake-psp.
 // Retries up to 3 attempts total on HTTP 5xx only, with full-jitter exponential backoff.
 // 4xx, network errors, and context cancellation are returned immediately without retry.
-// No timeout yet — context deadline added on Day 6.
+// Per-call deadline: 5s context timeout (pspCtx); 6s HTTP client timeout as backstop.
 func callPSP(ctx context.Context, amountMinor int64, currency string) (status, ref string, err error) {
+	pspCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	pspURL := os.Getenv("PSP_URL")
 	if pspURL == "" {
 		pspURL = "http://localhost:8081"
@@ -290,20 +302,20 @@ func callPSP(ctx context.Context, amountMinor int64, currency string) (status, r
 				"psp_status", lastStatus,
 			)
 			select {
-			case <-ctx.Done():
-				return "", "", ctx.Err()
+			case <-pspCtx.Done():
+				return "", "", pspCtx.Err()
 			case <-time.After(time.Duration(delayMS) * time.Millisecond):
 			}
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		req, err := http.NewRequestWithContext(pspCtx, http.MethodPost,
 			pspURL+"/authorize", bytes.NewReader(body))
 		if err != nil {
 			return "", "", fmt.Errorf("build request: %w", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := pspClient.Do(req)
 		if err != nil {
 			return "", "", fmt.Errorf("http: %w", err)
 		}
