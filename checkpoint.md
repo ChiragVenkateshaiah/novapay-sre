@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-16 (D6 complete; D7 next) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 1 (Day 1 ✓ Day 2 ✓ Day 3 ✓ Day 4 ✓ Day 5 ✓ Day 6 ✓; Day 7 next) · **Status:** in progress
+**Last updated:** 2026-06-17 (D7 complete; Week 1 complete) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** Week 1 complete, Week 2 planned
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -62,13 +62,33 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 ## Weekly log
 ### Week 1 — Phase 1: Build a correct payments core + harden it at the process boundary
 - **Goal:** build `payment-api` + `fake-psp` on one EC2 box (deployed via Ansible) under systemd, with a correct local double-entry ledger; **harden** the service 3 ways at the process boundary (bounded retries; timeouts + graceful shutdown; correct goroutine lifecycle).
-- **Day status:** D1 ☑ D2 ☑ D3 ☑ D4 ☑ D5 ☑ D6 ☑ D7 ☐
+- **Day status:** D1 ☑ D2 ☑ D3 ☑ D4 ☑ D5 ☑ D6 ☑ D7 ☑
 - **Built (so far):** WSL2 build env (Go 1.24.3, gopls, Ansible, Neovim); EC2 provisioned via Ansible (Go + Postgres + app/log dirs); `payment-api` (`/healthz`) + `fake-psp` (`/authorize` + latency/hang knobs) scaffolded, compiling, smoke-tested; binaries git-ignored; committed + pushed. `POST /charge` with double-entry ledger (pgx/v5, single transaction, two balanced ledger entries); idempotency enforced via `UNIQUE(idempotency_key)` — repeated key returns original result at latency_ms=0, moves no money; structured `slog` JSON logging (request_id, idempotency_key, latency_ms, psp_status); invariant query confirmed 0 rows; committed + pushed. systemd unit files for `payment-api` and `fake-psp` (restart-on-failure, journald logging, start-on-boot); Ansible `deploy.yml` (builds binaries locally via `delegate_to: localhost`, copies to `/opt/novapay/bin/`, installs unit files, sets up EC2 Postgres user + database via shell module, applies schema, `daemon-reload`, `enable --now`); both services deployed and active on EC2 via single Ansible command; ledger invariant holds on EC2 database (0 rows); committed + pushed. `PSP_ERROR_RATE` knob added to `fake-psp` (returns HTTP 500 on a random fraction of `/authorize` calls); bounded retry in `payment-api` (max 3 attempts, HTTP 5xx only, full-jitter exponential backoff: `random(0, min(1s, 100ms×2^attempt))`), `slog.Warn` on each retry; exhausted attempts return 503, DB transaction never opened — ledger invariant guaranteed on failure path; load-tested under `PSP_ERROR_RATE=0.5` (9/10 charges succeeded, 1 graceful 503, invariant 0 rows, failed charges wrote 0 DB rows); deployed to EC2 (commit `2eef3e9`); committed + pushed. In-process goroutine receipt worker: buffered channel (size 50) as work queue; single `receiptLoop` worker goroutine; non-blocking send from charge handler (`select { case ch <- id: default: }` — charge path never delayed); SIGTERM handler closes channel and waits for worker to drain before exit — clean shutdown without stranding receipts; zero child processes possible (no `exec.Command` in codebase); zombie accumulation eliminated structurally — 15 charges produced 0 defunct processes vs 15 with the shell-out; thread count stable at 9 across 20 charges; INC-004 opened and closed via GitHub MCP; committed `a68b831` and pushed. `context.WithTimeout(ctx, 5s)` derived inside `callPSP` and passed to `http.NewRequestWithContext`; `var pspClient = &http.Client{Timeout: 6 * time.Second}` package-level client (context fires first, client is backstop); retry backoff select updated to `pspCtx.Done()`; `runtime.NumGoroutine()` added to `/healthz` response — goroutine pile-up now visible without SSH; `errors.Is(err, context.DeadlineExceeded)` discriminates timeout (WARN) from other PSP errors (ERROR); goroutines 7→19 during 3 hung charges, back to 7 after 503s returned in ~5.01s each; zero DB rows on timeout (transaction never opens before PSP responds); INC-005 opened and closed via GitHub MCP; committed `c8be95e`.
 - **EC2 baseline (D3):** `payment-api` 1.9MB RAM · `fake-psp` 1.1MB RAM · ports 8080/8081 · structured logs to journald (`SyslogIdentifier=payment-api/fake-psp`) · restart-on-failure with 5s backoff · enabled (survives reboot) · 0 payments, invariant clean.
 - **Hardening built:** D4 ✓ — bounded PSP retry (backoff + jitter + cap); verified CPU at baseline under 50% error rate. D5 ✓ — correct goroutine/process lifecycle: in-process receipt worker, zero zombies, clean SIGTERM drain. D6 ✓ — context deadlines + HTTP client timeout: `context.WithTimeout(5s)` on PSP call, `http.Client{Timeout:6s}` package-level client as backstop; goroutine count added to `/healthz` response (`runtime.NumGoroutine()`); liveness ≠ healthy demonstrated and fixed; INC-005 opened and closed; commit `c8be95e`.
-- **Published:** _(build/learning deep-dive — Day 7 — link/title)_
-- **Carryover / unfinished:** _(anything to roll into Week 2)_
-- **Notes for next planning session:** _(surprises, scope changes, what Opus should know)_
+- **Published:** Week 1 deep-dive drafted (D7 consolidation). Article angle: three hardening properties built in Week 1 — retry resilience, goroutine/process lifecycle, context deadlines. Strongest hook: "liveness ≠ healthy."
+- **Carryover / unfinished:** LinkedIn article publish (staged in Day_07 notes)
+- **Notes for next planning session:** README is portfolio-quality. ADRs committed (7). Agentic workflow: /generate-questions and /new-adr commands added. Week 2 prereqs all met.
+
+### Week 2 — Filesystems, disk, memory
+**Goal:** structured transaction logging + harden against disk exhaustion and OOM kill.
+
+**Build slice:**
+- Add structured transaction logging to `payment-api` (writes a log entry per charge to `/var/log/novapay/transactions.log`)
+- This sets up the disk-fill hardening work
+
+**Hardening:**
+- Bound disk use: log rotation + retention so a busy day cannot fill `/`
+- Understand the OOM killer: set memory limits on the systemd units so the ledger writer degrades predictably under memory pressure rather than being killed at random
+
+**Publish angle:** "Designing a payments box that can't fill its own disk."
+
+**Prereqs before Week 2:**
+- All Week 1 days complete ✓
+- Both services live on EC2 ✓
+- ADRs committed ✓
+- README portfolio-quality ✓
+- Week 1 LinkedIn article published (or drafted) ✓
 
 ---
 
