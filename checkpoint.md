@@ -119,3 +119,23 @@ Run these in order at the end of every day before stopping EC2:
 `/write-note` reads checkpoint.md + the previous day's note + session
 context. Run it while the session is still fresh — it cannot reconstruct
 details from a cold start.
+
+## Agentic workflow enhancement log
+Last updated: 2026-06-17
+
+Standing rule: every day (or every 2 days at minimum), ask:
+"What does the Claude Code workflow gain today that it did not have yesterday?"
+Enhancements can be: new custom command, MCP integration, hook improvement,
+CLAUDE.md update, new ADR, checkpoint structure change.
+
+If no enhancement was made, write "none — carried forward" and it becomes
+a prompt to add one the next day.
+
+Week 1 enhancements (summary):
+- D1-D3: CLAUDE.md, 8 custom commands, PreToolUse/PostToolUse hooks,
+  MCP (Postgres + GitHub), settings.json with permissions
+- D4: /load-test command, GitHub Issue workflow (INC-003)
+- D5: /write-note command, end-of-day ritual, INC-004 workflow
+- D6: goroutine count in /healthz, INC-005 workflow
+- D6 (post): 7 ADRs, /new-adr command, CLAUDE.md architectural constraints,
+  Terraform light-touch integration planned (ADR-008 pending)
