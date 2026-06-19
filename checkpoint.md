@@ -84,7 +84,7 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 
 **Publish angle:** "Designing a payments box that can't fill its own disk."
 
-**Finalized plan (Days 8–14)** — see `notes/month-01/week-02-plan.md`:
+**Finalized plan (Days 8–14)** — see `docs/plans/week-02-plan.md`:
 - D8  Structured transaction (audit) logging — durable JSON stream, resilient write → ADR-009
 - D9  Disk-fill incident: observe (INC-006) — bounded 64M loopback fs; root never touched
 - D10 Disk-fill defence: logrotate + SIGHUP-reopen + journald cap (IaC) → ADR-010, close INC-006

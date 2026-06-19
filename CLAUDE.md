@@ -64,25 +64,33 @@ novapay-sre/
 │   └── fake-psp/
 │       ├── main.go                    ← /authorize + failure knobs
 │       ├── go.mod / go.sum
+├── docs/
+│   ├── decisions/                     ← ADRs (ADR-001 through ADR-007+)
+│   └── plans/                         ← week plans (committed, project-backbone)
+│       ├── week-01-plan.md
+│       └── week-02-plan.md
 ├── infrastructure/
 │   ├── ansible/
 │   │   ├── inventory.ini              ← EC2 host + SSH key
 │   │   ├── provision.yml              ← EC2 initial setup (already run)
-│   │   └── deploy.yml                 ← Day 3: build + copy + restart
+│   │   └── deploy.yml                 ← build + copy + restart
 │   └── systemd/
-│       ├── payment-api.service        ← Day 3: unit file
-│       └── fake-psp.service           ← Day 3: unit file
+│       ├── payment-api.service        ← unit file
+│       └── fake-psp.service           ← unit file
 ├── monitoring/
 ├── postmortems/
 ├── runbooks/
 ├── scripts/
 └── notes/                             ← gitignored, local working journal
     └── month-01/week-01/
-        ├── learning-notes.md
-        ├── day-01.md
-        ├── day-02.md
-        └── day-03-continuity.md
+        ├── Day_01.md … Day_07.md
+        └── learning-questions-week-01.md
 ```
+
+**File location convention:**
+- Week plans live in `docs/plans/` (committed, project-backbone — referenced by checkpoint.md, /day-start, and ADRs).
+- Day notes live in `notes/` (gitignored, personal reading material).
+- Never write a week plan into `notes/`.
 
 ---
 
