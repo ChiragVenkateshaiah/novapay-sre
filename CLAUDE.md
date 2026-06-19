@@ -33,18 +33,19 @@ PostgreSQL   (local on WSL2 for dev; local on EC2 for deploy)
 
 ## Current state
 
-**Phase:** Phase 1 · Week 1 · Linux & Systems Foundations
+**Phase:** Phase 1 · Week 2 · Linux & Systems Foundations
 **Discipline:** Deliberately undecided until Week-20 Decision Checkpoint (SRE / DevOps / Platform)
 
-**Completed:**
-- Day 1: WSL2 build env, EC2 provisioned via Ansible, services scaffolded
-- Day 2: POST /charge, double-entry ledger, idempotency, structured slog logging
+**Completed through Day 8:**
+- Week 1 (D1–D7): payment-api + fake-psp + double-entry ledger; systemd + Ansible deploy; bounded retries (full-jitter, ADR-004); in-process goroutine lifecycle (ADR-005); two-layer PSP timeouts (ADR-006); 7 ADRs; 10+ custom commands
+- Day 8: structured transaction audit log — resilient write (ADR-009); `/tail-tx` + `/ec2-tx` commands; `docs/plans/` convention
 
-**Day 3 goal (next):** systemd unit files + Ansible deploy playbook
-- Write `infrastructure/systemd/payment-api.service` and `fake-psp.service`
-- Write `infrastructure/ansible/deploy.yml`: build binaries → copy to EC2 → install units → restart
-- Verify on EC2: `systemctl status`, `journalctl -u payment-api`
-- Record healthy baseline (normal CPU, latency, log cadence) in checkpoint.md
+**Day 9 goal (next):** Disk-fill incident — observe (INC-006)
+- Create 64MB loopback filesystem (`fallocate -l 64M /opt/novapay/disktest.img`)
+- Point `TRANSACTION_LOG_PATH` at the loopback mount, fill with `dd`
+- Fire charges — observe ENOSPC surfacing in journald while charges return 200 and invariant holds
+- Capture `df -h /` before/during/after (root must be unchanged — structural safety proof)
+- Open INC-006 GitHub issue **before** starting the fill
 
 ---
 
@@ -82,9 +83,9 @@ novapay-sre/
 ├── runbooks/
 ├── scripts/
 └── notes/                             ← gitignored, local working journal
-    └── month-01/week-01/
-        ├── Day_01.md … Day_07.md
-        └── learning-questions-week-01.md
+    └── month-01/
+        ├── week-01/                   ← Day_01.md … Day_07.md + learning questions
+        └── week-02/                   ← Day_08.md + (current week)
 ```
 
 **File location convention:**

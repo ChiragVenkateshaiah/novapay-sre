@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-19 (Week 2 planned, Terraform-free) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** Week 2 finalized — Days 8–14 planned; **Day 8 next**
+**Last updated:** 2026-06-19 (D8 complete) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ — **Day 9 next**
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -85,7 +85,7 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 **Publish angle:** "Designing a payments box that can't fill its own disk."
 
 **Finalized plan (Days 8–14)** — see `docs/plans/week-02-plan.md`:
-- D8  Structured transaction (audit) logging — durable JSON stream, resilient write → ADR-009
+- D8 ☑ Structured transaction (audit) logging — durable JSON stream, resilient write → ADR-009 ✓
 - D9  Disk-fill incident: observe (INC-006) — bounded 64M loopback fs; root never touched
 - D10 Disk-fill defence: logrotate + SIGHUP-reopen + journald cap (IaC) → ADR-010, close INC-006
 - D11 OOM incident: observe (INC-007) — env-gated balloon, cgroup-v2 cap set first; Postgres safe
@@ -102,6 +102,10 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 - ADRs committed ✓
 - README portfolio-quality ✓
 - Week 1 LinkedIn article published (or drafted) ✓
+
+**Day status:** D8 ☑ D9 ☐ D10 ☐ D11 ☐ D12 ☐ D13 ☐ D14 ☐
+
+**Built (Week 2 so far):** D8 ✓ — structured transaction audit log: `auditWriter` wrapper (`*os.File`) surfaces write errors (ENOSPC etc.) to journald as `ERROR` without failing the charge; `initAuditLog()` reads `TRANSACTION_LOG_PATH` env var (default `/var/log/novapay/transactions.log`), logs single ERROR on open failure, leaves `txLog=nil`; `slog.NewJSONHandler` with `ReplaceAttr` (time→ts RFC3339, level+msg stripped); `event="charge"` written after `tx.Commit()`; `event="charge_idempotent"` at idempotency early-return (idempotency query extended to scan `psp_ref`); `txLogWriter *auditWriter` at package level for Day 10 SIGHUP-reopen; all 6 ACs verified (including AC5 write-resilience: unwritable path → charge 200, DB commits, invariant 0 rows, ERROR logged); deployed to EC2 (`224eafa`); audit log live at `/var/log/novapay/transactions.log`; ADR-009 committed; `/tail-tx` + `/ec2-tx` commands added.
 
 ---
 
@@ -155,7 +159,7 @@ context. Run it while the session is still fresh — it cannot reconstruct
 details from a cold start.
 
 ## Agentic workflow enhancement log
-Last updated: 2026-06-17
+Last updated: 2026-06-19
 
 Standing rule: every day (or every 2 days at minimum), ask:
 "What does the Claude Code workflow gain today that it did not have yesterday?"
@@ -175,8 +179,16 @@ Week 1 enhancements (summary):
   (a Terraform light-touch slice was floated here, then **declined** in Week-2
   planning — deferred to Phase 4; ADR-008 reserved. See Locked decisions.)
 
-Week 2 enhancements (planned):
-- D8: /tail-tx (+/ec2-tx) audit-log tail+jq; CLAUDE.md audit-log convention
+### Day 8 additions (2026-06-19)
+- `/tail-tx`: tail + `jq`-pretty the local audit log (N lines, default 20)
+- `/ec2-tx`: tail + `jq`-pretty the audit log on EC2 — bug caught and fixed
+  mid-session (single-quoted SSH string so `wc -l` runs remotely, not locally)
+- CLAUDE.md: ADR-009 architectural constraints added; `/tail-tx` + `/ec2-tx`
+  listed in command inventory
+- `docs/plans/` convention established: week plans committed here, day notes
+  gitignored in `notes/` — structural fix applied before Day 8 execution
+
+Week 2 enhancements (remaining):
 - D9: /ec2-disk; scripts/disk-fill-demo.sh (structural guard: refuse if / free <1G)
 - D10: /rotate-check; logrotate + journald cap as Ansible IaC
 - D11: /ec2-mem; scripts/oom-demo.sh (guard: refuse unless MemoryMax set)
