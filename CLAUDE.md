@@ -82,7 +82,7 @@ novapay-sre/
 ├── postmortems/
 ├── runbooks/
 ├── scripts/
-└── notes/                             ← gitignored, local working journal
+└── notes/                             ← committed; day notes + learning journal
     └── month-01/
         ├── week-01/                   ← Day_01.md … Day_07.md + learning questions
         └── week-02/                   ← Day_08.md + (current week)
@@ -90,7 +90,7 @@ novapay-sre/
 
 **File location convention:**
 - Week plans live in `docs/plans/` (committed, project-backbone — referenced by checkpoint.md, /day-start, and ADRs).
-- Day notes live in `notes/` (gitignored, personal reading material).
+- Day notes live in `notes/` (committed — tells the build story; day notes, learning questions, articles).
 - Never write a week plan into `notes/`.
 
 ---

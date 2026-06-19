@@ -13,6 +13,5 @@ app/payment-api/payment-api
 *.key
 /tmp
 
-# Private working notes (local only)
-notes/
+# Personal overrides (contains tokens / private config)
 CLAUDE.local.md
