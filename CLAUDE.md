@@ -145,6 +145,12 @@ and flagging the conflict explicitly.
   never shell-out via exec.Command → ADR-005
 - PSP calls must have two timeout layers: context deadline + HTTP client → ADR-006
 - Discipline (SRE/DevOps/Platform) undecided until Week-20 checkpoint → ADR-007
+- ADR-008 reserved for Phase-4 Terraform boundary decision — do not create before Phase 4
+- Audit log is a dedicated file stream (`/var/log/novapay/transactions.log`),
+  separate from journald operational logs → ADR-009
+- Audit write must never fail a charge: write errors emit ERROR to journald and
+  the charge returns 200 with the ledger committed → ADR-009
+- `TRANSACTION_LOG_PATH` env var overrides the audit log path (dev/test use only)
 
 ---
 
@@ -202,3 +208,5 @@ psql postgresql://novapay:novapay@localhost:5432/novapay \
 - `/test-charge` — run a test charge and idempotency check
 - `/day-start` — print current day context from checkpoint.md
 - `/commit` — stage, commit, and push with a message
+- `/tail-tx` — tail + jq-pretty the local transaction audit log
+- `/ec2-tx` — tail + jq-pretty the audit log on EC2

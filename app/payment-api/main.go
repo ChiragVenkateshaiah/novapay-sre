@@ -27,6 +27,65 @@ var receiptWorker = make(chan string, 50)
 
 var pspClient = &http.Client{Timeout: 6 * time.Second}
 
+// txLog is the dedicated audit logger — one JSON line per charge to the audit file.
+// txLogWriter is kept at package level so Day 10's SIGHUP handler can reopen the file.
+var txLog *slog.Logger
+var txLogWriter *auditWriter
+
+// auditWriter wraps *os.File so write errors surface to journald instead of being
+// silently dropped by slog. Always returns nil error to the caller so slog does not
+// suppress further writes after a transient failure.
+type auditWriter struct {
+	f *os.File
+}
+
+func (w *auditWriter) Write(p []byte) (int, error) {
+	_, err := w.f.Write(p)
+	if err != nil {
+		slog.Error("audit log write failed", "err", err)
+	}
+	return len(p), nil
+}
+
+// initAuditLog opens the audit file and wires up txLog. If the file cannot be
+// opened, an ERROR is logged to journald and txLog stays nil — all subsequent
+// writeAuditLine calls become no-ops so charges are never affected.
+func initAuditLog() {
+	path := os.Getenv("TRANSACTION_LOG_PATH")
+	if path == "" {
+		path = "/var/log/novapay/transactions.log"
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error("audit log open failed — audit writes disabled", "path", path, "err", err)
+		return
+	}
+	slog.Info("audit log opened", "path", path)
+	aw := &auditWriter{f: f}
+	txLogWriter = aw
+	txLog = slog.New(slog.NewJSONHandler(aw, &slog.HandlerOptions{
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			switch a.Key {
+			case slog.TimeKey:
+				return slog.String("ts", a.Value.Time().UTC().Format(time.RFC3339))
+			case slog.LevelKey, slog.MessageKey:
+				return slog.Attr{} // omit — not meaningful in a structured audit line
+			}
+			return a
+		},
+	}))
+}
+
+// writeAuditLine appends one JSON line to the audit file. A nil txLog means the
+// file failed to open at startup — the startup ERROR already covers this; no
+// per-charge noise. Runtime write failures are caught inside auditWriter.Write.
+func writeAuditLine(args ...any) {
+	if txLog == nil {
+		return
+	}
+	txLog.Info("", args...)
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -42,6 +101,8 @@ func main() {
 	}
 	db = pool
 	slog.Info("database connected")
+
+	initAuditLog()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -125,16 +186,27 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// idempotency check — return the original result if the key exists
-	var existingID, existingStatus string
+	var existingID, existingStatus, existingPSPRef string
 	err := db.QueryRow(ctx,
-		`SELECT id, status FROM payments WHERE idempotency_key = $1`,
+		`SELECT id, status, psp_ref FROM payments WHERE idempotency_key = $1`,
 		req.IdempotencyKey,
-	).Scan(&existingID, &existingStatus)
+	).Scan(&existingID, &existingStatus, &existingPSPRef)
 
 	if err == nil {
 		slog.Info("charge idempotent",
 			"idempotency_key", req.IdempotencyKey,
 			"payment_id", existingID,
+			"latency_ms", time.Since(start).Milliseconds(),
+		)
+		writeAuditLine(
+			"event", "charge_idempotent",
+			"payment_id", existingID,
+			"idempotency_key", req.IdempotencyKey,
+			"amount_minor", req.AmountMinor,
+			"currency", req.Currency,
+			"customer_id", req.CustomerID,
+			"psp_status", existingStatus,
+			"psp_ref", existingPSPRef,
 			"latency_ms", time.Since(start).Milliseconds(),
 		)
 		writeJSON(w, chargeResponse{PaymentID: existingID, Status: existingStatus})
@@ -225,6 +297,18 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+
+	writeAuditLine(
+		"event", "charge",
+		"payment_id", paymentID,
+		"idempotency_key", req.IdempotencyKey,
+		"amount_minor", req.AmountMinor,
+		"currency", req.Currency,
+		"customer_id", req.CustomerID,
+		"psp_status", pspStatus,
+		"psp_ref", pspRef,
+		"latency_ms", time.Since(start).Milliseconds(),
+	)
 
 	slog.Info("charge complete",
 		"payment_id", paymentID,
