@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-17 (D7 complete; Week 1 complete) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** Week 1 complete, Week 2 planned
+**Last updated:** 2026-06-19 (Week 2 planned, Terraform-free) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** Week 2 finalized — Days 8–14 planned; **Day 8 next**
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -14,6 +14,7 @@
 - **Foundation orientation: build-first — build for correctness, depth-first.** Study failure modes only to **harden** against them (every timeout, retry cap, invariant check is a defense); do **not** manufacture incidents. Reproducibility + demonstrable correctness are the measure. (Break-on-purpose / chaos returns **post-checkpoint, mainly in the SRE lane**.)
 - Build path: **minimal payments core, self-built, built for correctness.** No clone, no real PSP, no PCI scope. Reference Blnk + a Go/Postgres double-entry tutorial for patterns only.
 - System: `payment-api` (Go) + `fake-psp` (Go) + Postgres double-entry ledger + Redis (later). Grows into the full AWS/EKS/observability/AI stack over the year.
+- **Terraform begins in Phase 4 — this is a decision, not a backlog item.** During Week-2 planning a light-touch Terraform slice (managing the EC2 instance/SG/key pair) was explicitly proposed and **declined**: it would split focus from the Week-2 disk/memory work and duplicate the Phase-4 infra rewrite. No Terraform is written before Phase 4. **ADR-008 is reserved** for that future boundary decision (Terraform owns infra / Ansible owns config + deploy) and stays unwritten until then. If you are reading this and wondering "was Terraform forgotten?" — no, it was deferred on purpose.
 - Core invariant: per payment, sum(debits) == sum(credits). Non-negotiable; do not slim the ledger to a single balances table. Deep concurrency treatment (isolation levels, row locking) is **Week 7**.
 - **Dev→deploy workflow: build & test on WSL2 → deploy to EC2 via Ansible.** WSL2 = IDE/build box (Neovim, Go, local Postgres); EC2 = runtime/deploy target. No hand-copying — deployment goes through Ansible (platform-eng muscle from day one).
 - **Planning workflow: Opus plans the week → Sonnet executes → checkpoint carries to next week.**
@@ -83,6 +84,18 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 
 **Publish angle:** "Designing a payments box that can't fill its own disk."
 
+**Finalized plan (Days 8–14)** — see `notes/month-01/week-02-plan.md`:
+- D8  Structured transaction (audit) logging — durable JSON stream, resilient write → ADR-009
+- D9  Disk-fill incident: observe (INC-006) — bounded 64M loopback fs; root never touched
+- D10 Disk-fill defence: logrotate + SIGHUP-reopen + journald cap (IaC) → ADR-010, close INC-006
+- D11 OOM incident: observe (INC-007) — env-gated balloon, cgroup-v2 cap set first; Postgres safe
+- D12 OOM defence: MemoryHigh/Max + OOMScoreAdjust + crash-loop backoff (IaC) → ADR-011, close INC-007
+- D13 Integration: clean redeploy + 5-stage gauntlet (per-stage PASS/FAIL) + article draft
+- D14 Publish + checkpoint + Week 3 handoff
+- **Terraform: NOT this week** — deferred to Phase 4 as originally scoped; no light-touch version.
+- **New ADRs:** 009 (audit log), 010 (rotation), 011 (memory). **ADR-008 reserved** for the Phase-4 Terraform boundary decision.
+- **New workflow:** /tail-tx, /ec2-disk, /rotate-check, /ec2-mem, /gauntlet; scripts/{disk-fill-demo,oom-demo,gauntlet-week02}.sh.
+
 **Prereqs before Week 2:**
 - All Week 1 days complete ✓
 - Both services live on EC2 ✓
@@ -121,6 +134,7 @@ Before committing Day N, ask: what does the Claude Code workflow gain today that
 - **Prereqs that must be true before Week 2 starts:** `payment-api` + `fake-psp` running under systemd on EC2 (deployed via Ansible); ledger invariant holding + idempotency real; Week 1 hardening (bounded retries, timeouts, graceful shutdown, goroutine lifecycle) committed.
 - **Resolved this week:** Postgres location — **local on WSL2 for dev, local on EC2 for the deploy target; RDS deferred to Week 7.** Receipt generation — **in-process goroutine** (not a shelled-out child), decided on Day 5.
 - **Open questions to resolve as they arise:** _(Sonnet logs here.)_
+- **Resolved at planning (Week 2):** Terraform deferred to Phase 4 (no light-touch); INC-006 disk-fill bounded via 64M loopback fs (root safe); INC-007 OOM bounded via cgroup-v2 cap-first + env-gated balloon (Postgres safe); audit log is a dedicated resilient file, not journald.
 - **Reminder:** discipline still undecided — **Decision Checkpoint at Week 20.**
 
 ---
@@ -157,5 +171,14 @@ Week 1 enhancements (summary):
 - D4: /load-test command, GitHub Issue workflow (INC-003)
 - D5: /write-note command, end-of-day ritual, INC-004 workflow
 - D6: goroutine count in /healthz, INC-005 workflow
-- D6 (post): 7 ADRs, /new-adr command, CLAUDE.md architectural constraints,
-  Terraform light-touch integration planned (ADR-008 pending)
+- D6 (post): 7 ADRs, /new-adr command, CLAUDE.md architectural constraints
+  (a Terraform light-touch slice was floated here, then **declined** in Week-2
+  planning — deferred to Phase 4; ADR-008 reserved. See Locked decisions.)
+
+Week 2 enhancements (planned):
+- D8: /tail-tx (+/ec2-tx) audit-log tail+jq; CLAUDE.md audit-log convention
+- D9: /ec2-disk; scripts/disk-fill-demo.sh (structural guard: refuse if / free <1G)
+- D10: /rotate-check; logrotate + journald cap as Ansible IaC
+- D11: /ec2-mem; scripts/oom-demo.sh (guard: refuse unless MemoryMax set)
+- D12: CLAUDE.md memory-limit policy + NOVAPAY_DEBUG demo-only rule
+- D13: /gauntlet + scripts/gauntlet-week02.sh (5-stage per-stage reporting)
