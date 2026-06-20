@@ -21,7 +21,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var db *pgxpool.Pool
+var (
+	db               *pgxpool.Pool
+	receiptSemaphore = make(chan struct{}, 100)
+)
 
 var receiptWorker = make(chan string, 50)
 
@@ -317,6 +320,26 @@ func handleCharge(w http.ResponseWriter, r *http.Request) {
 		"psp_status", pspStatus,
 		"latency_ms", time.Since(start).Milliseconds(),
 	)
+
+	select {
+	case receiptSemaphore <- struct{}{}:
+		go func(pid string) {
+			defer func() { <-receiptSemaphore }()
+			time.Sleep(100 * time.Millisecond)
+
+			f, err := os.OpenFile("/tmp/novapay-receipts.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				slog.Error("failed to open receipt log", "err", err)
+				return
+			}
+			defer f.Close()
+			if _, err := f.WriteString("receipt-" + pid + "\n"); err != nil {
+				slog.Error("failed to write receipt", "err", err)
+			}
+		}(paymentID)
+	default:
+		slog.Warn("receipt generation skipped, at concurrency limit", "payment_id", paymentID)
+	}
 
 	writeJSON(w, chargeResponse{PaymentID: paymentID, Status: pspStatus})
 
