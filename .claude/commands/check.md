@@ -32,3 +32,16 @@ HAVING SUM(CASE WHEN direction='debit' THEN amount_minor ELSE 0 END) !=
 ```
 
 Report the result of each step clearly. If the invariant returns any rows, flag it as a CRITICAL issue — money is out of balance.
+
+5. Optional — EC2 reachability check (non-blocking):
+Read the EC2 IP from infrastructure/ansible/inventory.ini, then run:
+```
+EC2_IP=$(grep ansible_host infrastructure/ansible/inventory.ini | grep -oP 'ansible_host=\K[^ ]+')
+HTTP_CODE=$(curl -m 5 -s -o /dev/null -w "%{http_code}" "http://${EC2_IP}:8080/healthz" 2>/dev/null || echo "FAIL")
+if [ "${HTTP_CODE}" = "200" ]; then
+  echo "EC2:8080 PASS (HTTP 200)"
+else
+  echo "EC2:8080 FAIL (got '${HTTP_CODE}') — check security group inbound rules for port 8080; SSH access does not guarantee app-port reachability — see ADR-013"
+fi
+```
+Report PASS or FAIL but do not block the other checks from completing.

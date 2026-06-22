@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-19 (D8 complete) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ — **Day 9 next**
+**Last updated:** 2026-06-22 (ADR-008/012/013 added; pre-flight guard in runbook + /check) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ — **Day 9 next**
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -14,7 +14,6 @@
 - **Foundation orientation: build-first — build for correctness, depth-first.** Study failure modes only to **harden** against them (every timeout, retry cap, invariant check is a defense); do **not** manufacture incidents. Reproducibility + demonstrable correctness are the measure. (Break-on-purpose / chaos returns **post-checkpoint, mainly in the SRE lane**.)
 - Build path: **minimal payments core, self-built, built for correctness.** No clone, no real PSP, no PCI scope. Reference Blnk + a Go/Postgres double-entry tutorial for patterns only.
 - System: `payment-api` (Go) + `fake-psp` (Go) + Postgres double-entry ledger + Redis (later). Grows into the full AWS/EKS/observability/AI stack over the year.
-- **Terraform begins in Phase 4 — this is a decision, not a backlog item.** During Week-2 planning a light-touch Terraform slice (managing the EC2 instance/SG/key pair) was explicitly proposed and **declined**: it would split focus from the Week-2 disk/memory work and duplicate the Phase-4 infra rewrite. No Terraform is written before Phase 4. **ADR-008 is reserved** for that future boundary decision (Terraform owns infra / Ansible owns config + deploy) and stays unwritten until then. If you are reading this and wondering "was Terraform forgotten?" — no, it was deferred on purpose.
 - Core invariant: per payment, sum(debits) == sum(credits). Non-negotiable; do not slim the ledger to a single balances table. Deep concurrency treatment (isolation levels, row locking) is **Week 7**.
 - **Dev→deploy workflow: build & test on WSL2 → deploy to EC2 via Ansible.** WSL2 = IDE/build box (Neovim, Go, local Postgres); EC2 = runtime/deploy target. No hand-copying — deployment goes through Ansible (platform-eng muscle from day one).
 - **Planning workflow: Opus plans the week → Sonnet executes → checkpoint carries to next week.**
@@ -22,6 +21,8 @@
 - Cadence: build **daily**, publish **one deep-dive weekly** (build/learning through the foundation; lane-specific after the checkpoint), comment on 5–10 posts daily.
 - Cert backbone: SAA → CKA → Terraform Associate → DevOps Pro (discipline-flexible); CCA-F as differentiator. End goal: Canada, NOC 21231.
 - Day numbering: weeks run Day 1–7 at real pace, not weekday-locked.
+
+Workflow and tooling decisions are recorded as ADRs in docs/decisions/ — see ADR-008 (Terraform), ADR-012 (Omnigent), ADR-013 (pre-flight validation).
 
 ---
 

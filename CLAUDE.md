@@ -146,12 +146,18 @@ and flagging the conflict explicitly.
   never shell-out via exec.Command → ADR-005
 - PSP calls must have two timeout layers: context deadline + HTTP client → ADR-006
 - Discipline (SRE/DevOps/Platform) undecided until Week-20 checkpoint → ADR-007
-- ADR-008 reserved for Phase-4 Terraform boundary decision — do not create before Phase 4
+- Terraform is not introduced before Phase 4; EC2/SG/key-pair provisioning
+  remains manual + Ansible-managed until then → ADR-008
 - Audit log is a dedicated file stream (`/var/log/novapay/transactions.log`),
   separate from journald operational logs → ADR-009
 - Audit write must never fail a charge: write errors emit ERROR to journald and
   the charge returns 200 with the ledger committed → ADR-009
 - `TRANSACTION_LOG_PATH` env var overrides the audit log path (dev/test use only)
+- No meta-harness (Omnigent or equivalent); single Claude Code CLI agent with
+  Sonnet/Opus split is the workflow ceiling → ADR-012
+- Pre-flight checks (network reachability, environment state) are deterministic
+  shell guards, not LLM subagents; port 22 and port 8080 SG rules are independent
+  — SSH access does not guarantee app-port reachability → ADR-013
 
 ---
 
