@@ -94,6 +94,35 @@
     - name: Apply schema.sql
       shell: psql postgresql://novapay:novapay@localhost:5432/novapay -f {{ app_dir }}/schema.sql
 
+    # ── Logging: logrotate config ─────────────────────────────────────────────
+
+    - name: Copy logrotate config for novapay audit log
+      copy:
+        src: "{{ playbook_dir }}/../logrotate/novapay"
+        dest: /etc/logrotate.d/novapay
+        owner: root
+        group: root
+        mode: '0644'
+
+    # ── Logging: journald disk cap ────────────────────────────────────────────
+
+    - name: Ensure journald drop-in directory exists
+      file:
+        path: /etc/systemd/journald.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy journald cap drop-in
+      copy:
+        src: "{{ playbook_dir }}/../journald/novapay.conf"
+        dest: /etc/systemd/journald.conf.d/novapay.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart journald
+
     # ── Systemd: reload → enable → restart ───────────────────────────────────
 
     - name: Reload systemd daemon
@@ -110,4 +139,11 @@
       systemd:
         name: fake-psp
         enabled: yes
+        state: restarted
+
+  handlers:
+
+    - name: restart journald
+      systemd:
+        name: systemd-journald
         state: restarted

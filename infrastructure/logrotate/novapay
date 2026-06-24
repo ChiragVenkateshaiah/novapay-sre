@@ -1,0 +1,12 @@
+/var/log/novapay/transactions.log {
+    size 50M
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 ubuntu ubuntu
+    postrotate
+        systemctl kill -s HUP payment-api.service
+    endscript
+}

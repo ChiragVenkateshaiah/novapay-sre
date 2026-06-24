@@ -35,16 +35,40 @@ var txLogWriter *auditWriter
 // auditWriter wraps *os.File so write errors surface to journald instead of being
 // silently dropped by slog. Always returns nil error to the caller so slog does not
 // suppress further writes after a transient failure.
+//
+// mu serialises SIGHUP reopens against concurrent charge writes: Write holds RLock
+// for the full duration so reopen's Lock() drains all in-flight writes before
+// swapping the file handle. old.Close() is called after Unlock so nothing can be
+// mid-write on the old descriptor when it is closed.
 type auditWriter struct {
-	f *os.File
+	mu   sync.RWMutex
+	f    *os.File
+	path string
 }
 
 func (w *auditWriter) Write(p []byte) (int, error) {
-	_, err := w.f.Write(p)
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	n, err := w.f.Write(p)
 	if err != nil {
 		slog.Error("audit log write failed", "err", err)
+		return len(p), nil
 	}
-	return len(p), nil
+	return n, nil
+}
+
+func (w *auditWriter) reopen() {
+	newF, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error("audit log reopen failed", "path", w.path, "err", err)
+		return
+	}
+	w.mu.Lock()
+	old := w.f
+	w.f = newF
+	w.mu.Unlock()
+	old.Close()
+	slog.Info("audit log reopened", "path", w.path)
 }
 
 // initAuditLog opens the audit file and wires up txLog. If the file cannot be
@@ -61,7 +85,7 @@ func initAuditLog() {
 		return
 	}
 	slog.Info("audit log opened", "path", path)
-	aw := &auditWriter{f: f}
+	aw := &auditWriter{f: f, path: path}
 	txLogWriter = aw
 	txLog = slog.New(slog.NewJSONHandler(aw, &slog.HandlerOptions{
 		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
@@ -115,13 +139,21 @@ func main() {
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGTERM, os.Interrupt)
-		<-sigCh
-		slog.Info("SIGTERM received — draining receipt worker")
-		close(receiptWorker)
-		wg.Wait()
-		slog.Info("receipt worker drained")
-		os.Exit(0)
+		signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGHUP, os.Interrupt)
+		for sig := range sigCh {
+			switch sig {
+			case syscall.SIGHUP:
+				if txLogWriter != nil {
+					txLogWriter.reopen()
+				}
+			default:
+				slog.Info("SIGTERM received — draining receipt worker")
+				close(receiptWorker)
+				wg.Wait()
+				slog.Info("receipt worker drained")
+				os.Exit(0)
+			}
+		}
 	}()
 
 	http.HandleFunc("/healthz", handleHealth)
