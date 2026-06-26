@@ -159,6 +159,11 @@ func main() {
 	http.HandleFunc("/healthz", handleHealth)
 	http.HandleFunc("/charge", handleCharge)
 
+	if os.Getenv("NOVAPAY_DEBUG") == "1" {
+		http.HandleFunc("/debug/balloon", handleBalloon)
+		slog.Info("debug balloon endpoint enabled — NOT FOR PRODUCTION")
+	}
+
 	slog.Info("payment-api starting", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		slog.Error("server failed", "err", err)

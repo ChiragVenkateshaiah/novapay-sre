@@ -189,6 +189,9 @@ Week 1 enhancements (summary):
 - `docs/plans/` convention established: week plans committed here, day notes
   gitignored in `notes/` — structural fix applied before Day 8 execution
 
+### Day 11 — discipline signal (2026-06-26)
+Noted a strong personal pull toward the SRE-style break/observe/contain/verify/teardown loop while running the INC-007 OOM containment test. Logged as one data point for the Week-20 discipline decision (ADR-007) — not acted on yet, deliberately revisited at the checkpoint alongside however many similar signals accumulate between now and then.
+
 Week 2 enhancements (remaining):
 - D9: /ec2-disk; scripts/disk-fill-demo.sh (structural guard: refuse if / free <1G)
 - D10: /rotate-check; logrotate + journald cap as Ansible IaC
