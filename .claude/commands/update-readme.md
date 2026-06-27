@@ -113,3 +113,9 @@ STEP 5 — Write the new README.md, overwriting the old one entirely.
 STEP 6 — Do NOT commit. Stop after writing the file and show me the
 final result. I will review and commit manually, the same as every
 other change in this project.
+
+STEP 7 — Run /code-review on the updated README.md. Use the skill
+exactly as written — it will diff the working-tree change, run the
+multi-angle finder pass, verify each candidate, and return a ranked
+findings list. Present the findings to me before I decide whether to
+commit.
