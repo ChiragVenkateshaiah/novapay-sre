@@ -1,6 +1,8 @@
 [Unit]
 Description=NovaPay Payment API
 After=network.target postgresql.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 User=ubuntu
@@ -13,6 +15,9 @@ Environment=PSP_URL=http://localhost:8081
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=payment-api
+MemoryHigh=128M
+MemoryMax=192M
+OOMScoreAdjust=200
 
 [Install]
 WantedBy=multi-user.target

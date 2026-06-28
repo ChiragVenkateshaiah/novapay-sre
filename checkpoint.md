@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-22 (ADR-008/012/013 added; pre-flight guard in runbook + /check; locked-decisions section restored with ADR pointer appended) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ — **Day 9 next**
+**Last updated:** 2026-06-28 (Day status corrected to match commits: D9–D11 complete) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ D9 ☑ D10 ☑ D11 ☑ — **Day 12 next**
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -104,7 +104,7 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 - README portfolio-quality ✓
 - Week 1 LinkedIn article published (or drafted) ✓
 
-**Day status:** D8 ☑ D9 ☐ D10 ☐ D11 ☐ D12 ☐ D13 ☐ D14 ☐
+**Day status:** D8 ☑ D9 ☑ D10 ☑ D11 ☑ D12 ☐ D13 ☐ D14 ☐
 
 **Built (Week 2 so far):** D8 ✓ — structured transaction audit log: `auditWriter` wrapper (`*os.File`) surfaces write errors (ENOSPC etc.) to journald as `ERROR` without failing the charge; `initAuditLog()` reads `TRANSACTION_LOG_PATH` env var (default `/var/log/novapay/transactions.log`), logs single ERROR on open failure, leaves `txLog=nil`; `slog.NewJSONHandler` with `ReplaceAttr` (time→ts RFC3339, level+msg stripped); `event="charge"` written after `tx.Commit()`; `event="charge_idempotent"` at idempotency early-return (idempotency query extended to scan `psp_ref`); `txLogWriter *auditWriter` at package level for Day 10 SIGHUP-reopen; all 6 ACs verified (including AC5 write-resilience: unwritable path → charge 200, DB commits, invariant 0 rows, ERROR logged); deployed to EC2 (`224eafa`); audit log live at `/var/log/novapay/transactions.log`; ADR-009 committed; `/tail-tx` + `/ec2-tx` commands added.
 

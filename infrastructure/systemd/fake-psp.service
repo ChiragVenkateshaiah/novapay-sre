@@ -1,6 +1,8 @@
 [Unit]
 Description=NovaPay Fake PSP
 After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 User=ubuntu
@@ -11,6 +13,9 @@ Environment=PORT=8081
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=fake-psp
+MemoryHigh=64M
+MemoryMax=96M
+OOMScoreAdjust=200
 
 [Install]
 WantedBy=multi-user.target

@@ -146,6 +146,7 @@ Bound audit-log disk use so no charge volume can fill the disk, managed as IaC
   the audit file. Audit integrity (no lost lines) beats `copytruncate` simplicity.
 - **Cap journald** too (the *other* disk-fill vector): `SystemMaxUse=200M` via an
   Ansible-managed `journald.conf` drop-in (currently uncapped → defaults to ~10% disk).
+  *(Originally estimated at 100M; 200M was the value actually implemented and deployed in ADR-010 — plan updated to match reality.)*
 - **Worst-case ceiling math:** active 50M + 7 compressed rotations ≪ 500M ≪ 2.8G free — recorded in ADR-010.
 - Make it **IaC**: logrotate config + journald drop-in added to Ansible (new `logging` tasks), so the defence is reproducible, not a hand-edit.
 
