@@ -27,10 +27,12 @@ WSL2 (build box)
          │     ├── GET  /healthz   → {"status":"ok","goroutines":N}
          │     ├── POST /charge    → idempotency check → PSP call → DB txn → audit line
          │     └── (NOVAPAY_DEBUG=1 only) /debug/balloon  — RSS-growth probe, non-prod
+         │     [MemoryHigh=128M · MemoryMax=192M · OOMScoreAdjust=+200 · StartLimitBurst=5]
          │
          ├── fake-psp     :8081   systemd: fake-psp.service
          │     └── POST /authorize
          │           knobs: PSP_LATENCY_MS · PSP_ERROR_RATE · PSP_HANG
+         │     [MemoryHigh=64M · MemoryMax=96M · OOMScoreAdjust=+200 · StartLimitBurst=5]
          │
          ├── PostgreSQL (local on EC2)
          │     └── double-entry ledger: accounts · payments · ledger_entries
@@ -58,6 +60,7 @@ Both services run under systemd (`Restart=on-failure`, `RestartSec=5s`, reboot-s
 | Audit log | One JSON line per charge to `/var/log/novapay/transactions.log` | `auditWriter` surfaces `ENOSPC`/write errors to journald as ERROR and **never fails the charge** — charge returns 200, ledger commits (ADR-009) |
 | Log rotation | logrotate: `size 50M`, `rotate 7`, `compress`, `delaycompress` | SIGHUP-reopen (not `copytruncate`) — `RWMutex`-guarded fd swap, **zero audit lines lost across a rotation**, verified on EC2 (ADR-010) |
 | journald cap | `SystemMaxUse=200M` drop-in | Bounds the second independent disk-fill vector; combined worst case ≈302M ≪ 2.8G free — root structurally protected (ADR-010) |
+| systemd memory limits | `MemoryHigh/MemoryMax` per service, `OOMScoreAdjust=+200`, `StartLimitBurst=5` | Two-stage cgroup-v2 containment: soft throttle then hard cgroup-scoped OOM kill; app services scored to die before Postgres under system-wide pressure; crash-loop guard stops infinite restart thrash (ADR-011) |
 | systemd units | Both services managed | `Restart=on-failure`, `SyslogIdentifier`, start-on-boot |
 | Ansible deploy | WSL2 build → EC2 deploy | One idempotent command; `delegate_to: localhost` for the local binary build; ships binaries, schema, unit files, logrotate + journald config |
 
@@ -73,15 +76,13 @@ Each incident is a failure mode reproduced under controlled, bounded conditions,
 | INC-004 | Shell-out receipt generation accumulates zombie processes → PID exhaustion | In-process goroutine worker, SIGTERM drain, zero forks (ADR-005) | [#2](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/2) | ✅ Closed |
 | INC-005 | No PSP timeout → goroutines pile up silently; liveness ≠ healthy | `context.WithTimeout(5s)` + `http.Client{Timeout:6s}`; goroutine count in `/healthz` (ADR-006) | [#4](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/4) | ✅ Closed |
 | INC-006 | Audit-log filesystem fills → `ENOSPC` on every write | Resilient `auditWriter` (charge still 200); logrotate + SIGHUP-reopen + journald cap (ADR-009, ADR-010) | [#5](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/5) | ✅ Closed |
-| INC-007 | Memory balloon → OOM kill; system-wide killer could pick Postgres | cgroup-v2 `MemoryMax`/`MemoryHigh` cap set **before** the balloon, scoping the kill to payment-api's own cgroup; Postgres untouched. Permanent IaC + ADR-011 lands Day 12. | [#6](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/6) | 🔸 Open |
-
-> INC-007 was observed and contained on Day 11 (kill scoped to payment-api's cgroup, Postgres survived, invariant held after restart). It stays open until the Day-12 commit bakes the memory limits permanently into the systemd units as IaC.
+| INC-007 | Memory balloon → OOM kill; system-wide killer could pick Postgres | cgroup-v2 `MemoryMax/MemoryHigh` per-service caps scope the kill to the app's own cgroup; `OOMScoreAdjust=+200` orders app death before Postgres under system-wide pressure; `StartLimitBurst=5` stops crash-loop thrash. Baked into committed unit files as IaC (ADR-011) | [#6](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/6) | ✅ Closed |
 
 ---
 
 ## Architecture Decision Records
 
-**12 ADRs** in [`docs/decisions/`](docs/decisions/), each documenting the decision, context, alternatives considered, and rationale:
+**13 ADRs** in [`docs/decisions/`](docs/decisions/), each documenting the decision, context, alternatives considered, and rationale:
 
 - **ADR-001** — double-entry ledger, never a single balances table
 - **ADR-002** — `pgx/v5` + `pgxpool`, never `database/sql` + `lib/pq`
@@ -93,10 +94,9 @@ Each incident is a failure mode reproduced under controlled, bounded conditions,
 - **ADR-008** — Terraform deferred to Phase 4; EC2/SG/key-pair stay manual + Ansible
 - **ADR-009** — audit log is a dedicated, resilient file stream separate from journald
 - **ADR-010** — log rotation + retention: size-based, 7 compressed generations, SIGHUP-reopen, journald cap
+- **ADR-011** — systemd memory-limit strategy: `MemoryHigh/MemoryMax` two-stage containment, `OOMScoreAdjust` ordering to protect Postgres, crash-loop backoff
 - **ADR-012** — no meta-harness; a single Claude Code CLI agent is the workflow ceiling
 - **ADR-013** — pre-flight checks are deterministic shell guards, not LLM subagents (port 22 ≠ port 8080 reachability)
-
-*(ADR-011 is reserved for the Day-12 memory-limit decision; ADR numbering is intentionally non-contiguous.)*
 
 ---
 
@@ -128,7 +128,7 @@ The build runs on **Claude Code CLI**, with [`CLAUDE.md`](CLAUDE.md) as a commit
 - **Language:** Go 1.25 (`payment-api`), Go 1.24 (`fake-psp`) — standard library preferred, `log/slog` for logging
 - **DB driver:** `pgx/v5` with `pgxpool` (ADR-002)
 - **Database:** PostgreSQL (local on WSL2 for dev; local on EC2 for deploy)
-- **Process management:** systemd (units)
+- **Process management:** systemd (units with cgroup-v2 memory limits)
 - **Disk discipline:** logrotate + journald `SystemMaxUse`
 - **Provisioning / deploy:** Ansible (Terraform deferred to Phase 4, ADR-008)
 - **Runtime:** single EC2 t3.micro
@@ -198,8 +198,7 @@ ansible-playbook -i infrastructure/ansible/inventory.ini \
 
 ## What's next
 
-- **Day 12 — OOM defence (closes INC-007):** bake `MemoryMax` / `MemoryHigh` / `OOMScoreAdjust` / crash-loop backoff (`StartLimit*`) permanently into the systemd units as IaC, recorded in **ADR-011**, so the ledger writer degrades predictably under memory pressure instead of being killed at random.
-- **Day 13 — Integration:** clean redeploy + a 5-stage failure gauntlet (per-stage PASS/FAIL) + Week-2 article draft.
+- **Day 13 — Integration:** clean redeploy from committed repo + 5-stage failure gauntlet (`scripts/gauntlet-week02.sh`, per-stage PASS/FAIL) + Week-2 article draft.
 - **Day 14 — Publish + checkpoint + Week-3 handoff.**
 - **Week-20 Decision Checkpoint:** choose SRE / DevOps / Platform Engineering from operating experience — the chosen lane sets the spine of Weeks 21–34 and decides whether break-on-purpose chaos becomes the model.
 
@@ -207,7 +206,7 @@ ansible-playbook -i infrastructure/ansible/inventory.ini \
 
 ## Status
 
-**Phase 1 · Week 2 (Filesystems, disk, memory) · Days 1–11 complete, Day 12 next · discipline-neutral foundation.** Last updated 2026-06-27.
+**Phase 1 · Week 2 (Filesystems, disk, memory) · Days 1–12 complete, Day 13 next · discipline-neutral foundation.** Last updated 2026-06-28.
 
 ---
 
