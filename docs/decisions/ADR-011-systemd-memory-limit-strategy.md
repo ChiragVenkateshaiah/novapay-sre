@@ -80,29 +80,46 @@ Even if both services balloon to their `MemoryMax` simultaneously, the box retai
 418 MB headroom. The cgroup OOM killer's scope is bounded to each service's own
 cgroup — Postgres is structurally unreachable from either kill.
 
-### 2. OOMScoreAdjust=+200 on both app services
+### 2. OOMScoreAdjust: three-tier kill ordering
 
-`OOMScoreAdjust=200` is set in `[Service]` for both `payment-api` and `fake-psp`.
+`OOMScoreAdjust` is set differently per service to establish a deterministic kill
+hierarchy under genuine system-wide memory pressure:
+
+| Service | OOMScoreAdjust | Role | Kill priority |
+|---|---|---|---|
+| `fake-psp` | **500** | Expendable test-bank stub | killed first |
+| `payment-api` | **200** | Financial charge processor | killed second |
+| Postgres | 0 (default) | Ledger source of truth | killed last |
 
 The Linux OOM killer scores every process by combining its memory footprint with
-`/proc/PID/oom_score_adj` (range −1000 to +1000). A positive adjustment raises
-the score — making the kernel *more* likely to kill that process under system-wide
-memory pressure. Postgres runs at the default `oom_score_adj=0`.
+`/proc/PID/oom_score_adj` (range −1000 to +1000). A higher score makes the
+kernel *more* likely to kill that process. The system-wide OOM killer selects
+the highest-scoring victim.
 
-**Why this matters beyond the cgroup cap:** the `MemoryMax` cap and its
-cgroup-scoped OOM killer handle the nominal case — a single runaway service.
-`OOMScoreAdjust` handles the tail case: genuine system-wide pressure not caused
-by either app service (e.g., a kernel memory leak, a third process introduced
-later, or both services approaching their caps simultaneously). In that scenario
-the system-wide OOM killer fires, and without a score adjustment it makes a
-non-deterministic choice. `OOMScoreAdjust=+200` on the app services biases the
-kernel to kill them before Postgres under any pressure scenario — the ledger
-survives regardless of the kill pathway.
+**Why the scores differ between app services:** with a uniform score on both
+services, the OOM killer selects victims by RSS alone. `payment-api` has a
+`MemoryMax` ceiling of 192 MB — twice `fake-psp`'s 96 MB ceiling. If both
+services approach their caps simultaneously, `payment-api` carries ~2× the RSS
+and thus ~2× the raw badness score, making it the more likely victim despite
+being the financially critical service. `fake-psp` is a controllable stub — it
+holds no ledger state and its death causes no data loss. Raising `fake-psp`'s
+score to 500 adds a fixed bias that overrides any RSS-driven inversion: the
+stub is always killed before the charge processor, regardless of their
+respective RSS values at the moment of pressure.
 
-The ordering guarantee is: **app services die before the ledger dies.** A dead
-app service restarts in 5 seconds (`RestartSec=5s`). A dead Postgres mid-WAL is
-an outage until recovery completes. This priority ordering is intentional and
-non-negotiable for a co-resident single-box deployment.
+**Why this matters beyond the cgroup cap:** `MemoryMax` and its cgroup-scoped
+OOM killer (`CONSTRAINT_MEMCG`) handle the nominal case — a single runaway
+service. `OOMScoreAdjust` handles the tail case: genuine system-wide pressure
+not caused by a single service (e.g., both services approaching their caps
+simultaneously, a kernel memory leak, or a third process introduced later). In
+that scenario the system-wide OOM killer fires across all cgroups.
+
+The three-tier ordering guarantee: **fake-psp dies before payment-api; payment-api
+dies before the ledger.** A dead stub restarts in 5 seconds with no data loss.
+A dead payment-api restarts in 5 seconds; in-flight charges receive errors but
+the ledger is intact. A dead Postgres mid-WAL is an outage until recovery
+completes. This priority ordering is intentional and non-negotiable for a
+co-resident single-box deployment.
 
 ### 3. Crash-loop guard: StartLimitBurst=5 / StartLimitIntervalSec=60
 
@@ -168,8 +185,10 @@ provisioned from the committed repo.
   without manual post-deploy steps. `systemctl show <unit> -p MemoryMax,MemoryHigh`
   is the verification command.
 - A runaway `payment-api` or `fake-psp` cannot exhaust box RAM. Postgres is
-  protected by both the cgroup boundary (`CONSTRAINT_MEMCG`) and the OOM score
-  ordering (`OOMScoreAdjust=+200`).
+  protected by both the cgroup boundary (`CONSTRAINT_MEMCG`) and the three-tier
+  OOM score ordering (`fake-psp=500 > payment-api=200 > Postgres=0`): under any
+  kill pathway, the stub dies first, then the charge processor, and the ledger
+  survives longest.
 - Memory leaks in app services produce observable stalls at `MemoryHigh` before
   the hard kill — giving operators a signal window if monitoring is in place.
 - Repeated OOM kills produce a `failed` state rather than infinite restart thrash,

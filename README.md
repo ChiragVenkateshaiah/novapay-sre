@@ -27,12 +27,12 @@ WSL2 (build box)
          │     ├── GET  /healthz   → {"status":"ok","goroutines":N}
          │     ├── POST /charge    → idempotency check → PSP call → DB txn → audit line
          │     └── (NOVAPAY_DEBUG=1 only) /debug/balloon  — RSS-growth probe, non-prod
-         │     [MemoryHigh=128M · MemoryMax=192M · OOMScoreAdjust=+200 · StartLimitBurst=5]
+         │     [MemoryHigh=128M · MemoryMax=192M · OOMScoreAdjust=+200 · StartLimitBurst=5]  ← payment-api
          │
          ├── fake-psp     :8081   systemd: fake-psp.service
          │     └── POST /authorize
          │           knobs: PSP_LATENCY_MS · PSP_ERROR_RATE · PSP_HANG
-         │     [MemoryHigh=64M · MemoryMax=96M · OOMScoreAdjust=+200 · StartLimitBurst=5]
+         │     [MemoryHigh=64M · MemoryMax=96M · OOMScoreAdjust=+500 · StartLimitBurst=5]   ← fake-psp (stub, dies first)
          │
          ├── PostgreSQL (local on EC2)
          │     └── double-entry ledger: accounts · payments · ledger_entries
@@ -60,7 +60,7 @@ Both services run under systemd (`Restart=on-failure`, `RestartSec=5s`, reboot-s
 | Audit log | One JSON line per charge to `/var/log/novapay/transactions.log` | `auditWriter` surfaces `ENOSPC`/write errors to journald as ERROR and **never fails the charge** — charge returns 200, ledger commits (ADR-009) |
 | Log rotation | logrotate: `size 50M`, `rotate 7`, `compress`, `delaycompress` | SIGHUP-reopen (not `copytruncate`) — `RWMutex`-guarded fd swap, **zero audit lines lost across a rotation**, verified on EC2 (ADR-010) |
 | journald cap | `SystemMaxUse=200M` drop-in | Bounds the second independent disk-fill vector; combined worst case ≈302M ≪ 2.8G free — root structurally protected (ADR-010) |
-| systemd memory limits | `MemoryHigh/MemoryMax` per service, `OOMScoreAdjust=+200`, `StartLimitBurst=5` | Two-stage cgroup-v2 containment: soft throttle then hard cgroup-scoped OOM kill; app services scored to die before Postgres under system-wide pressure; crash-loop guard stops infinite restart thrash (ADR-011) |
+| systemd memory limits | `MemoryHigh/MemoryMax` per service, `OOMScoreAdjust` (fake-psp=500, payment-api=200), `StartLimitBurst=5` | Two-stage cgroup-v2 containment: soft throttle then hard cgroup-scoped OOM kill; three-tier kill ordering (fake-psp → payment-api → Postgres) ensures stub dies before charge processor, ledger survives longest; crash-loop guard stops infinite restart thrash (ADR-011) |
 | systemd units | Both services managed | `Restart=on-failure`, `SyslogIdentifier`, start-on-boot |
 | Ansible deploy | WSL2 build → EC2 deploy | One idempotent command; `delegate_to: localhost` for the local binary build; ships binaries, schema, unit files, logrotate + journald config |
 
@@ -76,7 +76,7 @@ Each incident is a failure mode reproduced under controlled, bounded conditions,
 | INC-004 | Shell-out receipt generation accumulates zombie processes → PID exhaustion | In-process goroutine worker, SIGTERM drain, zero forks (ADR-005) | [#2](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/2) | ✅ Closed |
 | INC-005 | No PSP timeout → goroutines pile up silently; liveness ≠ healthy | `context.WithTimeout(5s)` + `http.Client{Timeout:6s}`; goroutine count in `/healthz` (ADR-006) | [#4](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/4) | ✅ Closed |
 | INC-006 | Audit-log filesystem fills → `ENOSPC` on every write | Resilient `auditWriter` (charge still 200); logrotate + SIGHUP-reopen + journald cap (ADR-009, ADR-010) | [#5](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/5) | ✅ Closed |
-| INC-007 | Memory balloon → OOM kill; system-wide killer could pick Postgres | cgroup-v2 `MemoryMax/MemoryHigh` per-service caps scope the kill to the app's own cgroup; `OOMScoreAdjust=+200` orders app death before Postgres under system-wide pressure; `StartLimitBurst=5` stops crash-loop thrash. Baked into committed unit files as IaC (ADR-011) | [#6](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/6) | ✅ Closed |
+| INC-007 | Memory balloon → OOM kill; system-wide killer could pick Postgres | cgroup-v2 `MemoryMax/MemoryHigh` per-service caps scope the kill to the app's own cgroup; three-tier `OOMScoreAdjust` ordering (fake-psp=500 > payment-api=200 > Postgres=0) ensures stub dies first, ledger last; `StartLimitBurst=5` stops crash-loop thrash. Baked into committed unit files as IaC (ADR-011) | [#6](https://github.com/ChiragVenkateshaiah/novapay-sre/issues/6) | ✅ Closed |
 
 ---
 

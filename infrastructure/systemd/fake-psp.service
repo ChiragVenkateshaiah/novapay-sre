@@ -15,7 +15,7 @@ StandardError=journal
 SyslogIdentifier=fake-psp
 MemoryHigh=64M
 MemoryMax=96M
-OOMScoreAdjust=200
+OOMScoreAdjust=500
 
 [Install]
 WantedBy=multi-user.target
