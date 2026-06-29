@@ -141,6 +141,26 @@
         enabled: yes
         state: restarted
 
+    # ── Post-restart: verify memory limits applied (ADR-011) ─────────────────
+    # systemctl show returns byte values: 192M=201326592, 128M=134217728
+    # 'infinity' in stdout means the directive was silently ignored (e.g. cgroupv1)
+
+    - name: Verify payment-api memory limits
+      command: systemctl show payment-api -p MemoryMax,MemoryHigh,OOMScoreAdjust
+      register: payment_api_mem
+      failed_when: >
+        '201326592' not in payment_api_mem.stdout or
+        '134217728' not in payment_api_mem.stdout or
+        'OOMScoreAdjust=200' not in payment_api_mem.stdout
+
+    - name: Verify fake-psp memory limits
+      command: systemctl show fake-psp -p MemoryMax,MemoryHigh,OOMScoreAdjust
+      register: fake_psp_mem
+      failed_when: >
+        '100663296' not in fake_psp_mem.stdout or
+        '67108864' not in fake_psp_mem.stdout or
+        'OOMScoreAdjust=500' not in fake_psp_mem.stdout
+
   handlers:
 
     - name: restart journald
