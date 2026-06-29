@@ -36,16 +36,19 @@ PostgreSQL   (local on WSL2 for dev; local on EC2 for deploy)
 **Phase:** Phase 1 · Week 2 · Linux & Systems Foundations
 **Discipline:** Deliberately undecided until Week-20 Decision Checkpoint (SRE / DevOps / Platform)
 
-**Completed through Day 8:**
+**Completed through Day 12:**
 - Week 1 (D1–D7): payment-api + fake-psp + double-entry ledger; systemd + Ansible deploy; bounded retries (full-jitter, ADR-004); in-process goroutine lifecycle (ADR-005); two-layer PSP timeouts (ADR-006); 7 ADRs; 10+ custom commands
 - Day 8: structured transaction audit log — resilient write (ADR-009); `/tail-tx` + `/ec2-tx` commands; `docs/plans/` convention
+- Day 9: disk-fill incident observed (INC-006); 64M loopback fs; ENOSPC surfacing in journald while charges returned 200 and invariant held
+- Day 10: disk-fill defence — logrotate (size 50M, 7 rotations, SIGHUP-reopen) + journald cap (SystemMaxUse=200M) as Ansible IaC → ADR-010; INC-006 closed
+- Day 11: OOM incident observed (INC-007); env-gated balloon endpoint; cgroup-v2 scoped kill (CONSTRAINT_MEMCG); Postgres untouched; transient MemoryMax cap validated
+- Day 12: OOM defence baked as permanent IaC — MemoryHigh/Max + three-tier OOMScoreAdjust (fake-psp=500 > payment-api=200 > Postgres=0) + crash-loop guard (StartLimitBurst=5) → ADR-011; INC-007 closed
 
-**Day 9 goal (next):** Disk-fill incident — observe (INC-006)
-- Create 64MB loopback filesystem (`fallocate -l 64M /opt/novapay/disktest.img`)
-- Point `TRANSACTION_LOG_PATH` at the loopback mount, fill with `dd`
-- Fire charges — observe ENOSPC surfacing in journald while charges return 200 and invariant holds
-- Capture `df -h /` before/during/after (root must be unchanged — structural safety proof)
-- Open INC-006 GitHub issue **before** starting the fill
+**Day 13 goal (next):** Integration — clean redeploy from committed repo + 5-stage failure gauntlet + article draft
+- `/check` → `/deploy-dry-run` → `/deploy` → verify all Week 2 defences live on EC2
+- Write and run `scripts/gauntlet-week02.sh` (5 stages, per-stage PASS/FAIL)
+- Capture Week 2 EC2 baseline (RSS, memory limits, disk usage, journald usage)
+- Draft LinkedIn article "Designing a payments box that can't fill its own disk"
 
 ---
 
@@ -153,6 +156,14 @@ and flagging the conflict explicitly.
 - Audit write must never fail a charge: write errors emit ERROR to journald and
   the charge returns 200 with the ledger committed → ADR-009
 - `TRANSACTION_LOG_PATH` env var overrides the audit log path (dev/test use only)
+- Audit log rotated by logrotate (size 50M, 7 compressed generations, SIGHUP-reopen
+  for zero-loss fd swap); journald capped at SystemMaxUse=200M; both managed as
+  Ansible IaC → ADR-010
+- App service memory bounded via systemd MemoryHigh/MemoryMax (cgroup-v2 two-stage
+  containment); OOMScoreAdjust ordering: fake-psp=500 > payment-api=200 > Postgres=0
+  (stub dies first, ledger last); crash-loop guard via StartLimitBurst=5 /
+  StartLimitIntervalSec=60 in [Unit] (silently ignored in [Service] on systemd v229+)
+  → ADR-011
 - No meta-harness (Omnigent or equivalent); single Claude Code CLI agent with
   Sonnet/Opus split is the workflow ceiling → ADR-012
 - Pre-flight checks (network reachability, environment state) are deterministic
