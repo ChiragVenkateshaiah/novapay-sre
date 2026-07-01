@@ -1,0 +1,48 @@
+<svg width="100%" viewBox="0 0 680 480" role="img">
+<title>NovaPay two-node kubeadm cluster architecture</title>
+<desc>An outer container labeled NovaPay two-node kubeadm cluster, provisioned manually and configured via Ansible. Inside are two node containers side by side: a control-plane node on t3.small, and a worker node on c7i-flex.large. Each node container has two internal regions: a purple Kubernetes layer on top and a teal Linux/systemd substrate underneath, showing that Kubernetes components run on top of the same Linux foundation studied earlier in the project. A connector links the two nodes' Kubernetes layers, and an arrow from WSL2/Ansible deploy points into the cluster from above.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<text x="340" y="25" text-anchor="middle" font-size="12">WSL2 dev + Ansible deploy</text>
+<line x1="340" y1="32" x2="340" y2="48" stroke="#5F5E5A" stroke-width="1.5" marker-end="url(#arrow)"/>
+<g>
+<rect x="40" y="50" width="600" height="380" rx="20" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+<text x="340" y="78" text-anchor="middle" font-size="14" font-weight="500" fill="#2C2C2A">NovaPay — two-node kubeadm cluster</text>
+<text x="340" y="96" text-anchor="middle" font-size="12" fill="#444441">Provisioned manually, configured via Ansible (ADR-008 pattern)</text>
+</g>
+<g>
+<rect x="60" y="120" width="270" height="290" rx="14" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="195" y="150" text-anchor="middle" font-size="14" font-weight="500" fill="#042C53">Control-plane node</text>
+<text x="195" y="168" text-anchor="middle" font-size="12" fill="#0C447C">t3.small · 2 vCPU / 2GB</text>
+</g>
+<g>
+<rect x="75" y="185" width="240" height="95" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text x="195" y="222" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#26215C">K8s control plane</text>
+<text x="195" y="244" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3C3489">etcd, apiserver, scheduler</text>
+</g>
+<g>
+<rect x="75" y="290" width="240" height="95" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="195" y="328" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#04342C">Linux / systemd</text>
+<text x="195" y="350" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#085041">kubelet, kube-proxy, CNI</text>
+</g>
+<g>
+<rect x="350" y="120" width="270" height="290" rx="14" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+<text x="485" y="150" text-anchor="middle" font-size="14" font-weight="500" fill="#4A1B0C">Worker node</text>
+<text x="485" y="168" text-anchor="middle" font-size="12" fill="#712B13">c7i-flex.large · 2 vCPU / 4GB</text>
+</g>
+<g>
+<rect x="365" y="185" width="240" height="95" rx="10" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+<text x="485" y="222" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#26215C">K8s workload layer</text>
+<text x="485" y="244" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#3C3489">kubelet, kube-proxy, pods</text>
+</g>
+<g>
+<rect x="365" y="290" width="240" height="95" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="485" y="328" text-anchor="middle" dominant-baseline="central" font-size="14" font-weight="500" fill="#04342C">Linux / systemd</text>
+<text x="485" y="350" text-anchor="middle" dominant-baseline="central" font-size="12" fill="#085041">payment-api, fake-psp, PG</text>
+</g>
+<line x1="315" y1="232" x2="365" y2="232" stroke="#5F5E5A" stroke-width="0.5"/>
+<circle cx="315" cy="232" r="2.5" fill="#5F5E5A"/>
+<circle cx="365" cy="232" r="2.5" fill="#5F5E5A"/>
+<text x="340" y="450" text-anchor="middle" font-size="12" fill="#444441">Purple = Kubernetes layer  ·  Teal = Linux/systemd substrate</text>
+</svg>

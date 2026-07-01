@@ -2,7 +2,7 @@
 
 > **Purpose:** the single source of truth that carries state across weeks. Sonnet updates this as it executes; Opus reads it at the start of each weekly planning session so plans never scatter. Update the "Last updated" line every edit.
 
-**Last updated:** 2026-06-29 (D12 ☑; CLAUDE.md current state + ADR-010/011 constraints updated) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ D9 ☑ D10 ☑ D11 ☑ D12 ☑ — **Day 13 next**
+**Last updated:** 2026-07-01 (ADR-014 added — cert sequence, target career path, and paired Linux/Kubernetes curriculum + EC2 sizing) · **Current phase:** Phase 1 (Linux & Systems Foundations) — *common core, discipline-neutral* · **Current week:** Week 2 · **Status:** D8 ☑ D9 ☑ D10 ☑ D11 ☑ D12 ☑ — **Day 13 next**
 
 > **★ Decision pending:** discipline (SRE / DevOps / Platform) is deliberately **undecided** until the **Week-20 Decision Checkpoint**. The foundation is build-first and neutral until then. See the decision-gate section below.
 
@@ -19,7 +19,7 @@
 - **Planning workflow: Opus plans the week → Sonnet executes → checkpoint carries to next week.**
 - **Scope ceiling:** build only what **deepens a core competency** (correctness, concurrency, systems, observability, reproducibility); post-checkpoint, also what serves the chosen lane. No payment features for their own sake.
 - Cadence: build **daily**, publish **one deep-dive weekly** (build/learning through the foundation; lane-specific after the checkpoint), comment on 5–10 posts daily.
-- Cert backbone: SAA → CKA → Terraform Associate → DevOps Pro (discipline-flexible); CCA-F as differentiator. End goal: Canada, NOC 21231.
+- Cert sequence, target career path, and the paired Linux/Kubernetes curriculum: see ADR-014 (supersedes the cert order stated in ADR-007's consequences section); CCA-F as differentiator. End goal: Canada, NOC 21231.
 - Day numbering: weeks run Day 1–7 at real pace, not weekday-locked.
 
 Workflow and tooling decisions are recorded as ADRs in docs/decisions/ — see ADR-008 (Terraform), ADR-012 (Omnigent), ADR-013 (pre-flight validation).
@@ -42,6 +42,7 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 | Ansible | provision + deploy (the IaC workflow) | provision ✓; deploy playbook = Day 3 |
 | Observability | CloudWatch + Prom/Grafana + SLOs | Phase 2 |
 | Terraform | whole stack as code | Phase 4 |
+| Kubernetes | two-node cluster (t3.small control-plane + c7i-flex.large worker), paired with the Linux track | Phase 1 Week 3+ (see ADR-014) |
 | AI agent | triage → MCP → gated remediation | post-checkpoint (AIOps, ~wk 29+) |
 
 ---
