@@ -30,3 +30,13 @@ coordinate. This project's target (Staff/Principal Cloud Engineer, per
 ADR-014) is why this specific investment was chosen over staying
 Linux-only -- a Linux Administrator target could have justified going
 deeper on a single box instead.
+
+**Infrastructure cost.** At the confirmed usage pattern (3 hours/day):
+t3.small control-plane ~$1.87/month + c7i-flex.large worker ~$7.63/month =
+~$9.50/month total (US baseline pricing; ap-south-2 regional pricing was
+not confirmed at decision time -- verify via AWS Pricing Calculator before
+relying on this figure for budgeting). A symmetric two-t3.small-node
+alternative (~$3.74/month) was considered and set aside in favor of
+worker-node headroom -- see ADR-014's Alternatives Considered for the full
+reasoning. The prior t3.micro instance is retired once the app stack
+migrates onto the worker node.

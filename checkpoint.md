@@ -109,6 +109,27 @@ After Phase 4 (SAA + CKA + Terraform Associate earned, full stack built correctl
 
 **Built (Week 2 so far):** D8 ✓ — structured transaction audit log: `auditWriter` wrapper (`*os.File`) surfaces write errors (ENOSPC etc.) to journald as `ERROR` without failing the charge; `initAuditLog()` reads `TRANSACTION_LOG_PATH` env var (default `/var/log/novapay/transactions.log`), logs single ERROR on open failure, leaves `txLog=nil`; `slog.NewJSONHandler` with `ReplaceAttr` (time→ts RFC3339, level+msg stripped); `event="charge"` written after `tx.Commit()`; `event="charge_idempotent"` at idempotency early-return (idempotency query extended to scan `psp_ref`); `txLogWriter *auditWriter` at package level for Day 10 SIGHUP-reopen; all 6 ACs verified (including AC5 write-resilience: unwritable path → charge 200, DB commits, invariant 0 rows, ERROR logged); deployed to EC2 (`224eafa`); audit log live at `/var/log/novapay/transactions.log`; ADR-009 committed; `/tail-tx` + `/ec2-tx` commands added.
 
+**Prereqs before Kubernetes Week 1** (per ADR-014, ADR-015):
+- [ ] Two nodes provisioned (t3.small control-plane, c7i-flex.large
+      worker) via manual console/CLI, per ADR-008's provisioning pattern
+- [ ] Security group opened and pre-flight-checked (SSH 22, API server
+      6443, kubelet API 10250, CNI-specific ports once CNI is chosen)
+- [ ] kubeadm init (control-plane) and kubeadm join (worker) run, and both
+      added to the Ansible playbook set — not left as one-off commands
+- [ ] App stack (payment-api, fake-psp, Postgres) migrated onto the worker
+      node as pods, and confirmed working
+- [ ] t3.micro retired once the migration above is confirmed
+- [ ] nerdctl + buildkitd provisioned in WSL2 for local image builds
+      (ADR-015)
+- [ ] Amazon ECR repository created; worker node's IAM role granted pull
+      permission on it; network path from the worker node to the ECR
+      endpoint verified reachable (pre-flight check, per ADR-013's
+      pattern — not assumed, per the INC-006 lesson)
+
+Kubernetes Week 1 (pod lifecycle / restart policies, paired with the
+already-closed Linux Week 1) does not start until every item above is
+checked.
+
 ---
 
 ## Agentic workflow evolution log
